@@ -1,24 +1,32 @@
 .app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
+  width: 100%;
+  flex: 1;
 }
 
 .main-layout {
   display: flex;
   flex: 1;
   overflow: hidden;
+  width: 100%;
+  height: 100%;
 }
 
 .map {
   flex: 1.5;
   min-width: 0;
   position: relative;
+  height: 100%;
+  width: auto;
+  display: flex;
 }
 
 .right-panel {
   flex: 1;
   min-width: 0;
+  height: 100%;
   overflow-y: auto;
   background: #ffffff;
 }

@@ -1,18 +1,27 @@
+html,
+body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 * {
   box-sizing: border-box;
 }
 
 body {
-  margin: 0;
   font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   background: #f8f9fa;
   color: #2c3e50;
 }
 
 #root {
-  height: 100vh;
+  height: 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
+  flex: 1;
 }
 
 /* ========== DATA INPUT PANEL ========== */
@@ -1249,4 +1258,4 @@ body {
 }
 
 .right-panel::-webkit-scrollbar-thumb:hover {
-  background: #adb5bf;
+  background: #adb5bf;}

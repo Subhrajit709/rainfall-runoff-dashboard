@@ -93,7 +93,7 @@ export default function MapView({ onDataInputComplete }) {
       center={[20.5, 82.5]} 
       zoom={5} 
       className="map"
-      style={{ height: "100%", width: "100%" }}
+      style={{ height: "100%", width: "100%", display: "flex", position: "relative" }}
     >
       <TileLayer 
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
