@@ -1,0 +1,25 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.main-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.map {
+  flex: 1.5;
+  min-width: 0;
+  position: relative;
+}
+
+.right-panel {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  background: #ffffff;
+}
+
