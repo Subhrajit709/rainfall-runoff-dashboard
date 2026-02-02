@@ -1,34 +1,40 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
+import { runoffSeries } from "../data/rainfallData";
 
-export default function HistogramPanel({ filters }) {
-  const getChartData = () => {
-    if (!filters) {
-      return [
-        { range: "-100", count: 5 },
-        { range: "-50", count: 12 },
-        { range: "0", count: 20 },
-        { range: "50", count: 8 }
-      ];
-    }
-    return [
-      { range: "-100", count: Math.floor(Math.random() * 10) },
-      { range: "-50", count: Math.floor(Math.random() * 15) },
-      { range: "0", count: Math.floor(Math.random() * 25) },
-      { range: "50", count: Math.floor(Math.random() * 10) }
-    ];
+export default function HistogramPanel({ chartsData }) {
+  if (!chartsData) return null;
+
+  // Create bins
+  const bins = {
+    "0–10": 0,
+    "10–20": 0,
+    "20–30": 0,
+    "30–40": 0,
+    "40+": 0,
   };
 
-  const data = getChartData();
+  runoffSeries.forEach((d) => {
+    if (d.runoff < 10) bins["0–10"]++;
+    else if (d.runoff < 20) bins["10–20"]++;
+    else if (d.runoff < 30) bins["20–30"]++;
+    else if (d.runoff < 40) bins["30–40"]++;
+    else bins["40+"]++;
+  });
+
+  const data = Object.keys(bins).map((key) => ({
+    range: key,
+    count: bins[key],
+  }));
 
   return (
     <div className="chart-card">
-      <h3>Deviation Histogram</h3>
-      {filters && <p style={{ fontSize: "12px", color: "#666", margin: "0 0 10px 0" }}>Based on: {filters.level} - {filters.region}</p>}
-      <BarChart width={180} height={180} data={data}>
-        <XAxis dataKey="range" stroke="none" />
-        <YAxis stroke="none" />
+      <h3>Runoff Distribution</h3>
+
+      <BarChart width={220} height={220} data={data}>
+        <XAxis dataKey="range" />
+        <YAxis />
         <Tooltip />
-        <Bar dataKey="count" fill="#f44336" />
+        <Bar dataKey="count" fill="#1976d2" />
       </BarChart>
     </div>
   );
