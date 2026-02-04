@@ -421,6 +421,10 @@ export default function ChartsPanel({
                 borderRadius: "6px",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
               }}
+              labelStyle={{
+    color: "#cec345",   // ✅ This changes "Time: 123" color
+    fontWeight: "700",
+  }}
               formatter={(value, name) => {
                 if (typeof value !== "number") return value;
                 if (name === "Rainfall (mm)") return [value.toFixed(2), name];
