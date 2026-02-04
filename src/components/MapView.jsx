@@ -9,6 +9,7 @@ import {
 } from "react-leaflet";
 import { useState, useRef, useEffect } from "react";
 import L from "leaflet";
+import { findMatchingSegment, validateUserInput, getValidationReport } from "../utils/dataLoader";
 import "leaflet/dist/leaflet.css";
 
 /* ---------- Fix Leaflet marker icons ---------- */
@@ -57,18 +58,22 @@ function ClickHandler({ onPointSelect, disabled }) {
   return null;
 }
 
-export default function MapView({ onDataInputComplete }) {
+export default function MapView({ onDataInputComplete, csvData }) {
   const [point, setPoint] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
   const [inputStep, setInputStep] = useState("initial");
   const [rainfallValue, setRainfallValue] = useState("");
   const [runoffValue, setRunoffValue] = useState("");
+  const [validationError, setValidationError] = useState(null);
 
   const [catchmentData, setCatchmentData] = useState(null);
   const [riverData, setRiverData] = useState(null);
   const [outletData, setOutletData] = useState(null);
 
   const popupRef = useRef(null);
+
+  /* ---------- Get CSV ranges for display ---------- */
+  const csvRanges = getValidationReport();
 
   /* ---------- GeoJSON Loader ---------- */
   useEffect(() => {
@@ -108,21 +113,49 @@ export default function MapView({ onDataInputComplete }) {
     setInputStep("initial");
     setRainfallValue("");
     setRunoffValue("");
+    setValidationError(null);
   };
 
   const handleRainfallNext = () => {
-    if (rainfallValue) setInputStep("runoff-initial");
+    if (rainfallValue) {
+      setValidationError(null);
+      setInputStep("runoff-initial");
+    }
   };
 
   const handleRunoffNext = () => {
-    if (runoffValue) setInputStep("complete");
+    if (runoffValue) {
+      setValidationError(null);
+      setInputStep("complete");
+    }
   };
 
   const handleLoadData = () => {
+    const rainfallInput = Number(rainfallValue);
+    const runoffInput = Number(runoffValue);
+
+    // Validate input against CSV range
+    const validation = validateUserInput(rainfallInput, runoffInput);
+    
+    if (!validation.valid) {
+      setValidationError(validation.errors.join('\n'));
+      return;
+    }
+
+    // Find matching segment in CSV
+    const matchResult = findMatchingSegment(csvData, rainfallInput, runoffInput, 15);
+
+    if (!matchResult.found) {
+      setValidationError(matchResult.message + '\n\n' + matchResult.suggestion);
+      return;
+    }
+
+    // Success - pass data to parent
     onDataInputComplete({
       point,
-      rainfallInput: Number(rainfallValue),
-      runoffInput: Number(runoffValue),
+      rainfallInput,
+      runoffInput,
+      matchResult,
       timestamp: new Date().toISOString(),
     });
     setShowPopup(false);
@@ -182,7 +215,7 @@ export default function MapView({ onDataInputComplete }) {
 
       <ClickHandler onPointSelect={handlePointSelect} disabled={showPopup} />
 
-      {/* ---------- Marker & Popup (UNCHANGED) ---------- */}
+      {/* ---------- Marker & Popup ---------- */}
       {point && showPopup && (
         <Marker position={[point.lat, point.lng]}>
           <Popup
@@ -193,117 +226,165 @@ export default function MapView({ onDataInputComplete }) {
             className="map-popup"
           >
             <div className="popup-inner" onClick={stop}>
-              {/* 🔒 POPUP JSX UNCHANGED */}
-              {inputStep === "initial" && (
-                <>
-                  <h4>Enter Data Values</h4>
-                  <div className="popup-buttons">
-                    <button
-                      className="popup-btn rainfall-btn"
-                      onClick={() => setInputStep("rainfall-input")}
-                    >
-                      🌧️ Enter Rainfall
-                    </button>
-                    <button
-                      className="popup-btn runoff-btn"
-                      disabled
-                      style={{ opacity: 0.5, cursor: "not-allowed" }}
-                    >
-                      💧 Enter Runoff (Complete rainfall first)
-                    </button>
+              {/* CSV Range Display */}
+              {csvRanges && inputStep === "initial" && (
+                <div className="csv-range-info">
+                  <div className="range-header">📊 Valid CSV Ranges</div>
+                  <div className="range-item">
+                    🌧️ Rainfall: {csvRanges.rainfall.min.toFixed(1)} - {csvRanges.rainfall.max.toFixed(1)} mm
                   </div>
-                </>
+                  <div className="range-item">
+                    💧 Runoff: {csvRanges.runoff.min.toFixed(1)} - {csvRanges.runoff.max.toFixed(1)} m³/s
+                  </div>
+                </div>
               )}
 
-              {inputStep === "rainfall-input" && (
-                <>
-                  <h4>🌧️ Rainfall Value</h4>
-                  <input
-                    type="number"
-                    className="popup-input"
-                    value={rainfallValue}
-                    onChange={(e) => setRainfallValue(e.target.value)}
-                    onKeyPress={(e) =>
-                      e.key === "Enter" && handleRainfallNext()
-                    }
-                    autoFocus
-                  />
-                  <button
-                    className="popup-continue-btn"
-                    disabled={!rainfallValue}
-                    onClick={handleRainfallNext}
+              {/* Validation Error Display */}
+              {validationError && (
+                <div className="validation-error">
+                  <div className="error-icon">⚠️</div>
+                  <div className="error-text">{validationError}</div>
+                  <button 
+                    className="error-ok-btn"
+                    onClick={() => {
+                      setValidationError(null);
+                      setInputStep("rainfall-input");
+                    }}
                   >
-                    ✓ Continue
+                    Try Again
                   </button>
-                  <button
-                    className="popup-back-btn"
-                    onClick={() => setInputStep("initial")}
-                  >
-                    ← Back
-                  </button>
-                </>
+                </div>
               )}
 
-              {inputStep === "runoff-initial" && (
+              {!validationError && (
                 <>
-                  <button
-                    className="popup-btn runoff-btn"
-                    onClick={() => setInputStep("runoff-input")}
-                  >
-                    💧 Enter Runoff
-                  </button>
-                  <button
-                    className="popup-back-btn"
-                    onClick={() => setInputStep("rainfall-input")}
-                  >
-                    ← Change Rainfall
-                  </button>
-                </>
-              )}
+                  {inputStep === "initial" && (
+                    <>
+                      <h4>Enter Data Values</h4>
+                      <div className="popup-buttons">
+                        <button
+                          className="popup-btn rainfall-btn"
+                          onClick={() => setInputStep("rainfall-input")}
+                        >
+                          🌧️ Enter Rainfall
+                        </button>
+                        <button
+                          className="popup-btn runoff-btn"
+                          disabled
+                          style={{ opacity: 0.5, cursor: "not-allowed" }}
+                        >
+                          💧 Enter Runoff (Complete rainfall first)
+                        </button>
+                      </div>
+                    </>
+                  )}
 
-              {inputStep === "runoff-input" && (
-                <>
-                  <h4>💧 Runoff Value</h4>
-                  <input
-                    type="number"
-                    className="popup-input"
-                    value={runoffValue}
-                    onChange={(e) => setRunoffValue(e.target.value)}
-                    onKeyPress={(e) =>
-                      e.key === "Enter" && handleRunoffNext()
-                    }
-                    autoFocus
-                  />
-                  <button
-                    className="popup-continue-btn"
-                    disabled={!runoffValue}
-                    onClick={handleRunoffNext}
-                  >
-                    ✓ Continue
-                  </button>
-                  <button
-                    className="popup-back-btn"
-                    onClick={() => setInputStep("runoff-initial")}
-                  >
-                    ← Back
-                  </button>
-                </>
-              )}
+                  {inputStep === "rainfall-input" && (
+                    <>
+                      <h4>🌧️ Rainfall Value (mm)</h4>
+                      <div className="input-hint">
+                        Range: {csvRanges.rainfall.min.toFixed(1)} - {csvRanges.rainfall.max.toFixed(1)} mm
+                      </div>
+                      <input
+                        type="number"
+                        className="popup-input"
+                        value={rainfallValue}
+                        onChange={(e) => setRainfallValue(e.target.value)}
+                        onKeyPress={(e) =>
+                          e.key === "Enter" && handleRainfallNext()
+                        }
+                        placeholder={`e.g., ${csvRanges.rainfall.mean.toFixed(1)}`}
+                        autoFocus
+                      />
+                      <button
+                        className="popup-continue-btn"
+                        disabled={!rainfallValue}
+                        onClick={handleRainfallNext}
+                      >
+                        ✓ Continue
+                      </button>
+                      <button
+                        className="popup-back-btn"
+                        onClick={() => setInputStep("initial")}
+                      >
+                        ← Back
+                      </button>
+                    </>
+                  )}
 
-              {inputStep === "complete" && (
-                <>
-                  <button
-                    className="popup-load-btn"
-                    onClick={handleLoadData}
-                  >
-                    ▶ Load Data
-                  </button>
-                  <button
-                    className="popup-back-btn"
-                    onClick={() => setInputStep("runoff-input")}
-                  >
-                    ← Change Runoff
-                  </button>
+                  {inputStep === "runoff-initial" && (
+                    <>
+                      <div className="value-confirmed">
+                        ✓ Rainfall: {rainfallValue} mm
+                      </div>
+                      <button
+                        className="popup-btn runoff-btn"
+                        onClick={() => setInputStep("runoff-input")}
+                      >
+                        💧 Enter Runoff
+                      </button>
+                      <button
+                        className="popup-back-btn"
+                        onClick={() => setInputStep("rainfall-input")}
+                      >
+                        ← Change Rainfall
+                      </button>
+                    </>
+                  )}
+
+                  {inputStep === "runoff-input" && (
+                    <>
+                      <h4>💧 Runoff Value (m³/s)</h4>
+                      <div className="input-hint">
+                        Range: {csvRanges.runoff.min.toFixed(1)} - {csvRanges.runoff.max.toFixed(1)} m³/s
+                      </div>
+                      <input
+                        type="number"
+                        className="popup-input"
+                        value={runoffValue}
+                        onChange={(e) => setRunoffValue(e.target.value)}
+                        onKeyPress={(e) =>
+                          e.key === "Enter" && handleRunoffNext()
+                        }
+                        placeholder={`e.g., ${csvRanges.runoff.mean.toFixed(1)}`}
+                        autoFocus
+                      />
+                      <button
+                        className="popup-continue-btn"
+                        disabled={!runoffValue}
+                        onClick={handleRunoffNext}
+                      >
+                        ✓ Continue
+                      </button>
+                      <button
+                        className="popup-back-btn"
+                        onClick={() => setInputStep("runoff-initial")}
+                      >
+                        ← Back
+                      </button>
+                    </>
+                  )}
+
+                  {inputStep === "complete" && (
+                    <>
+                      <div className="values-summary">
+                        <div className="value-confirmed">✓ Rainfall: {rainfallValue} mm</div>
+                        <div className="value-confirmed">✓ Runoff: {runoffValue} m³/s</div>
+                      </div>
+                      <button
+                        className="popup-load-btn"
+                        onClick={handleLoadData}
+                      >
+                        ▶ Load & Analyze Data
+                      </button>
+                      <button
+                        className="popup-back-btn"
+                        onClick={() => setInputStep("runoff-input")}
+                      >
+                        ← Change Runoff
+                      </button>
+                    </>
+                  )}
                 </>
               )}
             </div>

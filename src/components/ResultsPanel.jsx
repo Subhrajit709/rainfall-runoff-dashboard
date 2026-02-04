@@ -1,13 +1,13 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from "recharts";
 
-export default function ResultsPanel({ selectedPoint, selectedVariable, chartsData, modelResults, onReset }) {
+export default function ResultsPanel({ selectedPoint, chartsData, modelResults, onReset }) {
   if (!modelResults) {
     return null;
   }
 
-  const { models, rainfall, runoff } = modelResults;
+  const { models, rainfall, runoff, matchInfo, trainSize, testSize } = modelResults;
 
-  
+  // Metrics data for bar chart
   const metricsData = [
     {
       metric: "RMSE",
@@ -43,7 +43,6 @@ export default function ResultsPanel({ selectedPoint, selectedVariable, chartsDa
     },
   ];
 
-  
   const modelColors = {
     ANN: "#FF6B6B",
     LSTM: "#4ECDC4",
@@ -51,9 +50,8 @@ export default function ResultsPanel({ selectedPoint, selectedVariable, chartsDa
     XGBoost: "#95E1D3",
   };
 
-  
-  const rainfallData = rainfall.slice(0, 500);
-  const runoffData = runoff.slice(0, 500);
+  const rainfallData = rainfall;
+  const runoffData = runoff;
 
   return (
     <div className="results-panel">
@@ -63,7 +61,7 @@ export default function ResultsPanel({ selectedPoint, selectedVariable, chartsDa
           <div className="location-info-compact">
             <span>📍 {selectedPoint.lat.toFixed(3)}°N, {selectedPoint.lng.toFixed(3)}°E</span>
             <span>|</span>
-            <span>📊 Rainfall & Runoff</span>
+            <span>📊 CSV-Based Analysis</span>
           </div>
         </div>
         <button className="reset-button" onClick={onReset}>
@@ -72,9 +70,25 @@ export default function ResultsPanel({ selectedPoint, selectedVariable, chartsDa
       </div>
 
       <div className="results-content">
+        {/* Training Info Banner */}
+        <div className="training-info-banner">
+          <div className="info-item">
+            <span className="label">Training Set:</span>
+            <span className="value">{trainSize} points</span>
+          </div>
+          <div className="info-item">
+            <span className="label">Test Set:</span>
+            <span className="value">{testSize} points</span>
+          </div>
+          <div className="info-item">
+            <span className="label">Data Source:</span>
+            <span className="value">rainfall_runoff_19sept.csv</span>
+          </div>
+        </div>
+
         {/* Time Series Charts */}
         <div className="section">
-          <h3>📈 Predicted Data</h3>
+          <h3>📈 Data Visualization</h3>
           <div className="charts-dual-container">
             <div className="chart-section">
               <div className="chart-header">
@@ -83,14 +97,13 @@ export default function ResultsPanel({ selectedPoint, selectedVariable, chartsDa
               </div>
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={rainfallData}>
-                  <defs>
-                    <linearGradient id="rfGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#1e90ff" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#1e90ff" stopOpacity={0.1}/>
-                    </linearGradient>
-                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e8ecf0" vertical={false} />
-                  <XAxis dataKey="time" stroke="#999" tick={{ fontSize: 10 }} interval={50} />
+                  <XAxis 
+                    dataKey="time" 
+                    stroke="#999" 
+                    tick={{ fontSize: 10 }} 
+                    interval={Math.floor(rainfallData.length / 10)} 
+                  />
                   <YAxis stroke="#999" tick={{ fontSize: 10 }} width={40} />
                   <Tooltip 
                     contentStyle={{
@@ -120,14 +133,13 @@ export default function ResultsPanel({ selectedPoint, selectedVariable, chartsDa
               </div>
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={runoffData}>
-                  <defs>
-                    <linearGradient id="roGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#00a86b" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#00a86b" stopOpacity={0.1}/>
-                    </linearGradient>
-                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e8ecf0" vertical={false} />
-                  <XAxis dataKey="time" stroke="#999" tick={{ fontSize: 10 }} interval={50} />
+                  <XAxis 
+                    dataKey="time" 
+                    stroke="#999" 
+                    tick={{ fontSize: 10 }} 
+                    interval={Math.floor(runoffData.length / 10)} 
+                  />
                   <YAxis stroke="#999" tick={{ fontSize: 10 }} width={40} />
                   <Tooltip 
                     contentStyle={{
@@ -194,25 +206,28 @@ export default function ResultsPanel({ selectedPoint, selectedVariable, chartsDa
                 </tr>
               </thead>
               <tbody>
-                {models.map((model, idx) => (
-                  <tr key={model.model} className={idx === 3 ? "best-row" : ""}>
-                    <td className="model-cell">
-                      <span className="model-badge" style={{ backgroundColor: modelColors[model.model] }}>
-                        {model.model}
-                      </span>
-                    </td>
-                    <td>{model.rmse.toFixed(2)}</td>
-                    <td>{model.r2.toFixed(4)}</td>
-                    <td>{model.r.toFixed(4)}</td>
-                    <td>{model.nse.toFixed(4)}</td>
-                    <td className="rank-cell">
-                      {idx === 3 && "🏆 1st"}
-                      {idx === 1 && "🥈 2nd"}
-                      {idx === 0 && "🥉 3rd"}
-                      {idx === 2 && "4th"}
-                    </td>
-                  </tr>
-                ))}
+                {models
+                  .slice()
+                  .sort((a, b) => a.rmse - b.rmse)
+                  .map((model, idx) => (
+                    <tr key={model.model} className={idx === 0 ? "best-row" : ""}>
+                      <td className="model-cell">
+                        <span className="model-badge" style={{ backgroundColor: modelColors[model.model] }}>
+                          {model.model}
+                        </span>
+                      </td>
+                      <td>{model.rmse.toFixed(2)}</td>
+                      <td>{model.r2.toFixed(4)}</td>
+                      <td>{model.r.toFixed(4)}</td>
+                      <td>{model.nse.toFixed(4)}</td>
+                      <td className="rank-cell">
+                        {idx === 0 && "🏆 1st"}
+                        {idx === 1 && "🥈 2nd"}
+                        {idx === 2 && "🥉 3rd"}
+                        {idx === 3 && "4th"}
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
@@ -222,35 +237,53 @@ export default function ResultsPanel({ selectedPoint, selectedVariable, chartsDa
         <div className="section analysis-box">
           <h3>📋 Analysis Summary</h3>
           <div className="analysis-grid">
-            <div className="analysis-card">
-              <h4>🏆 Best Model</h4>
-              <p className="big-text">{models[3].model}</p>
-              <p className="small-text">Lowest RMSE: {models[3].rmse.toFixed(2)}</p>
-            </div>
-            <div className="analysis-card">
-              <h4>📈 Highest Accuracy</h4>
-              <p className="big-text">R² = {models[3].r2.toFixed(3)}</p>
-              <p className="small-text">{(models[3].r2 * 100).toFixed(1)}% variance explained</p>
-            </div>
-            <div className="analysis-card">
-              <h4>✅ Best Efficiency</h4>
-              <p className="big-text">NSE = {models[3].nse.toFixed(3)}</p>
-              <p className="small-text">Excellent model efficiency</p>
-            </div>
-            <div className="analysis-card">
-              <h4>⚡ Correlation</h4>
-              <p className="big-text">R = {models[3].r.toFixed(3)}</p>
-              <p className="small-text">Strong linear relationship</p>
-            </div>
+            {(() => {
+              const bestModel = models.reduce((best, current) => 
+                current.rmse < best.rmse ? current : best
+              );
+              return (
+                <>
+                  <div className="analysis-card">
+                    <h4>🏆 Best Model</h4>
+                    <p className="big-text">{bestModel.model}</p>
+                    <p className="small-text">Lowest RMSE: {bestModel.rmse.toFixed(2)}</p>
+                  </div>
+                  <div className="analysis-card">
+                    <h4>📈 Highest Accuracy</h4>
+                    <p className="big-text">R² = {bestModel.r2.toFixed(3)}</p>
+                    <p className="small-text">{(bestModel.r2 * 100).toFixed(1)}% variance explained</p>
+                  </div>
+                  <div className="analysis-card">
+                    <h4>✅ Best Efficiency</h4>
+                    <p className="big-text">NSE = {bestModel.nse.toFixed(3)}</p>
+                    <p className="small-text">Excellent model efficiency</p>
+                  </div>
+                  <div className="analysis-card">
+                    <h4>⚡ Correlation</h4>
+                    <p className="big-text">R = {bestModel.r.toFixed(3)}</p>
+                    <p className="small-text">Strong linear relationship</p>
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           <div className="recommendations">
             <h4>💡 Key Findings</h4>
             <ul>
-              <li><strong>{models[3].model}</strong> outperforms other models with RMSE of {models[3].rmse.toFixed(2)}</li>
-              <li>Model explains <strong>{(models[3].r2 * 100).toFixed(1)}%</strong> of variance in the data</li>
-              <li>NSE value of <strong>{models[3].nse.toFixed(3)}</strong> indicates excellent predictive efficiency</li>
-              <li>Strong correlation coefficient <strong>{models[3].r.toFixed(3)}</strong> shows reliable predictions</li>
+              {(() => {
+                const bestModel = models.reduce((best, current) => 
+                  current.rmse < best.rmse ? current : best
+                );
+                return (
+                  <>
+                    <li><strong>{bestModel.model}</strong> outperforms other models with RMSE of {bestModel.rmse.toFixed(2)}</li>
+                    <li>Model explains <strong>{(bestModel.r2 * 100).toFixed(1)}%</strong> of variance in the data</li>
+                    <li>NSE value of <strong>{bestModel.nse.toFixed(3)}</strong> indicates excellent predictive efficiency</li>
+                    <li>Analysis based on <strong>{trainSize + testSize}</strong> real data points from CSV</li>
+                  </>
+                );
+              })()}
             </ul>
           </div>
         </div>

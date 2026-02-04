@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { rainfallSeries, runoffSeries } from "../data/rainfallData";
+import { calculateModelMetrics } from "../utils/dataLoader";
 
-export default function ChartsPanel({ selectedPoint, selectedVariable, chartsData, onRunModels }) {
+export default function ChartsPanel({ selectedPoint, chartsData, csvData, onRunModels }) {
   const [isRunning, setIsRunning] = useState(false);
   const [animatingChart, setAnimatingChart] = useState(null);
 
   useEffect(() => {
-    
     if (chartsData) {
       setAnimatingChart('both');
       const timer = setTimeout(() => setAnimatingChart(null), 600);
@@ -19,22 +18,35 @@ export default function ChartsPanel({ selectedPoint, selectedVariable, chartsDat
     return null;
   }
 
+  const { matchResult, rainfallInput, runoffInput } = chartsData;
+
+  // Use either window data or full CSV
+  const displayData = matchResult.found ? matchResult.windowData : csvData.slice(0, 500);
+  const rainfallSeries = displayData;
+  const runoffSeries = displayData;
+
   const handleRunModels = async () => {
     setIsRunning(true);
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    const mockResults = {
-      models: [
-        { model: "ANN", rmse: 12.3, r2: 0.82, r: 0.88, nse: 0.79 },
-        { model: "LSTM", rmse: 9.1, r2: 0.90, r: 0.93, nse: 0.88 },
-        { model: "SVR", rmse: 14.7, r2: 0.76, r: 0.81, nse: 0.73 },
-        { model: "XGBoost", rmse: 8.4, r2: 0.92, r: 0.95, nse: 0.91 },
-      ],
+    // Split data for training/testing (80/20)
+    const splitIndex = Math.floor(csvData.length * 0.8);
+    const trainData = csvData.slice(0, splitIndex);
+    const testData = csvData.slice(splitIndex);
+
+    // Calculate REAL metrics based on CSV data
+    const models = calculateModelMetrics(trainData, testData);
+
+    const results = {
+      models: models,
       rainfall: rainfallSeries,
       runoff: runoffSeries,
+      matchInfo: matchResult,
+      trainSize: trainData.length,
+      testSize: testData.length
     };
 
-    onRunModels(mockResults);
+    onRunModels(results);
     setIsRunning(false);
   };
 
@@ -44,21 +56,26 @@ export default function ChartsPanel({ selectedPoint, selectedVariable, chartsDat
         <div className="location-info">
           <span className="info-badge">📍 Location</span>
           <span className="info-value">{selectedPoint.lat.toFixed(3)}°N, {selectedPoint.lng.toFixed(3)}°E</span>
-          <span className="info-badge">📊 Loaded Data</span>
-          <span className="info-value">Rainfall: {chartsData.rainfallInput}mm | Runoff: {chartsData.runoffInput}m³/s</span>
+          <span className="info-badge">📊 Input Values</span>
+          <span className="info-value">Rainfall: {rainfallInput}mm | Runoff: {runoffInput}m³/s</span>
         </div>
+        
+        {matchResult.found && (
+          <div className="match-info-banner">
+            ✓ {matchResult.message}
+          </div>
+        )}
       </div>
 
       <div className="charts-dual-container">
         {/* Rainfall Chart */}
         <div className={`chart-section ${animatingChart ? 'animating' : ''}`}>
           <div className="chart-header">
-            <h3>🌧️ Rainfall</h3>
+            <h3>🌧️ Rainfall Data</h3>
             <span className="chart-unit">(mm)</span>
           </div>
           <ResponsiveContainer width="100%" height={320}>
-        
-        39    <LineChart data={rainfallSeries.slice(0, 500)}>
+            <LineChart data={rainfallSeries}>
               <defs>
                 <linearGradient id="rainfallGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#1e90ff" stopOpacity={0.8}/>
@@ -70,7 +87,7 @@ export default function ChartsPanel({ selectedPoint, selectedVariable, chartsDat
                 dataKey="time" 
                 stroke="#999"
                 tick={{ fontSize: 11 }}
-                interval={50}
+                interval={Math.floor(rainfallSeries.length / 10)}
               />
               <YAxis 
                 stroke="#999"
@@ -101,25 +118,24 @@ export default function ChartsPanel({ selectedPoint, selectedVariable, chartsDat
                 name="Rainfall (mm)"
                 isAnimationActive={true}
                 animationDuration={800}
-                fill="url(#rainfallGradient)"
               />
             </LineChart>
           </ResponsiveContainer>
           <div className="chart-stats">
             <span>Max: {Math.max(...rainfallSeries.map(d => d.rainfall)).toFixed(1)} mm</span>
             <span>Avg: {(rainfallSeries.reduce((a, b) => a + b.rainfall, 0) / rainfallSeries.length).toFixed(1)} mm</span>
-            <span>Input: {chartsData.rainfallInput} mm</span>
+            <span>Input: {rainfallInput} mm</span>
           </div>
         </div>
 
         {/* Runoff Chart */}
         <div className={`chart-section ${animatingChart ? 'animating' : ''}`}>
           <div className="chart-header">
-            <h3>💧 Runoff</h3>
+            <h3>💧 Runoff Data</h3>
             <span className="chart-unit">(m³/s)</span>
           </div>
           <ResponsiveContainer width="100%" height={320}>
-            <LineChart data={runoffSeries.slice(0, 500)}>
+            <LineChart data={runoffSeries}>
               <defs>
                 <linearGradient id="runoffGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#00a86b" stopOpacity={0.8}/>
@@ -131,7 +147,7 @@ export default function ChartsPanel({ selectedPoint, selectedVariable, chartsDat
                 dataKey="time" 
                 stroke="#999"
                 tick={{ fontSize: 11 }}
-                interval={50}
+                interval={Math.floor(runoffSeries.length / 10)}
               />
               <YAxis 
                 stroke="#999"
@@ -162,14 +178,13 @@ export default function ChartsPanel({ selectedPoint, selectedVariable, chartsDat
                 name="Runoff (m³/s)"
                 isAnimationActive={true}
                 animationDuration={800}
-                fill="url(#runoffGradient)"
               />
             </LineChart>
           </ResponsiveContainer>
           <div className="chart-stats">
             <span>Max: {Math.max(...runoffSeries.map(d => d.runoff)).toFixed(1)} m³/s</span>
             <span>Avg: {(runoffSeries.reduce((a, b) => a + b.runoff, 0) / runoffSeries.length).toFixed(1)} m³/s</span>
-            <span>Input: {chartsData.runoffInput} m³/s</span>
+            <span>Input: {runoffInput} m³/s</span>
           </div>
         </div>
       </div>
@@ -183,7 +198,7 @@ export default function ChartsPanel({ selectedPoint, selectedVariable, chartsDat
           {isRunning ? (
             <>
               <span className="spinner"></span>
-              Running Analysis...
+              Running Analysis on CSV Data...
             </>
           ) : (
             <>
@@ -194,7 +209,10 @@ export default function ChartsPanel({ selectedPoint, selectedVariable, chartsDat
       </div>
 
       <div className="data-info">
-        <p>📈 Showing first 500 time steps of 3320 total data points | Loaded with input values</p>
+        <p>📈 Showing {displayData.length} data points from CSV | Total dataset: {csvData.length} points</p>
+        {matchResult.found && (
+          <p className="match-detail">🎯 Matched {matchResult.matchCount} similar points in dataset</p>
+        )}
       </div>
     </div>
   );
