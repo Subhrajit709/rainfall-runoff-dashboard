@@ -1,55 +1,29 @@
-import { useState } from "react";
+import React from "react";
+import "./Header.css";
 
 export default function Header() {
-  const [activeTab, setActiveTab] = useState("Dashboard");
-
-  const tabs = ["Dashboard", "DSS Tools", "Analytics", "Data"];
-
-  const handleTabClick = (tab) => {
-    setActiveTab(tab);
-    
-    switch(tab) {
-      case "Dashboard":
-        window.location.hash = "#dashboard";
-        console.log("Dashboard loaded");
-        break;
-      case "DSS Tools":
-        window.location.hash = "#dss-tools";
-        console.log("DSS Tools loaded");
-        break;
-      case "Analytics":
-        window.location.hash = "#analytics";
-        console.log("Analytics loaded");
-        break;
-      case "Data":
-        window.location.hash = "#data";
-        console.log("Data loaded");
-        break;
-      default:
-        break;
-    }
-  };
-
   return (
-    <header className="header">
-      <div className="logo">NRSC | ISRO</div>
-      <h1>Geospatial Weather Monitoring Dashboard</h1>
-      <nav>
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => handleTabClick(tab)}
-            className={activeTab === tab ? "nav-button active" : "nav-button"}
-            style={{
-              background: activeTab === tab ? "rgba(255, 107, 53, 0.3)" : "rgba(255, 255, 255, 0.1)",
-              borderColor: activeTab === tab ? "#ff6b35" : "rgba(255, 255, 255, 0.3)",
-              color: activeTab === tab ? "#ff6b35" : "rgba(255, 255, 255, 0.9)"
-            }}
-          >
-            {tab}
-          </button>
-        ))}
-      </nav>
+    <header className="isro-header" role="banner">
+      <div className="isro-header__left">
+        <img src="https://www.nrsc.gov.in/nrscnew/assets/img/footer/isro.png" alt="ISRO" className="isro-logo" />
+        <div className="brand-text">
+          <div className="brand-main">NRSC | ISRO</div>
+          <div className="brand-sub">Space Applications Centre</div>
+        </div>
+      </div>
+
+      <div className="isro-header__center">
+        <h1 className="main-title">Rainfall-Runoff Hydrological Analysis</h1>
+        <div className="center-sub">Real-time Watershed Modeling &amp; Prediction System</div>
+      </div>
+
+      <div className="isro-header__right">
+        <div className="status" aria-live="polite">
+          <span className="status-dot" aria-hidden="true"></span>
+          <span className="status-text">System Active</span>
+        </div>
+        <div className="data-badge" aria-hidden="false">📊 3,320 Data Points</div>
+      </div>
     </header>
   );
 }
