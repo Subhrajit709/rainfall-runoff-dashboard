@@ -1,3 +1,139 @@
+// import { useState, useEffect } from "react";
+// import Header from "./components/Header";
+// import MapView from "./components/MapView";
+// import ChartsPanel from "./components/ChartsPanel";
+// import ResultsPanel from "./components/ResultsPanel";
+// import ErrorPanel from "./components/ErrorPanel";
+// import { loadCSVData } from "./utils/dataLoader";
+// import "./App.css";
+
+// export default function App() {
+//   const [csvLoaded, setCsvLoaded] = useState(false);
+//   const [csvData, setCsvData] = useState(null);
+//   const [csvError, setCsvError] = useState(null);
+//   const [selectedPoint, setSelectedPoint] = useState(null);
+//   const [chartsData, setChartsData] = useState(null);
+//   const [modelResults, setModelResults] = useState(null);
+
+//   // Load CSV on mount
+//   useEffect(() => {
+//     const initializeData = async () => {
+//       try {
+//         const result = await loadCSVData();
+//         setCsvData(result.data);
+//         setCsvLoaded(true);
+//         console.log('✅ CSV Loaded:', result.report);
+        
+//         // Show warnings if any
+//         if (result.warnings && result.warnings.length > 0) {
+//           console.warn('⚠️ CSV Warnings:', result.warnings);
+//         }
+//       } catch (error) {
+//         console.error('❌ CSV Load Failed:', error);
+//         setCsvError(error.message);
+//       }
+//     };
+
+//     initializeData();
+//   }, []);
+
+//   const handleDataInputComplete = (data) => {
+//     setSelectedPoint(data.point);
+//     setChartsData({
+//       rainfallInput: data.rainfallInput,
+//       runoffInput: data.runoffInput,
+//       matchResult: data.matchResult,
+//       timestamp: data.timestamp,
+//     });
+//   };
+
+//   const handleRunModels = (results) => {
+//     setModelResults(results);
+//   };
+
+//   const handleReset = () => {
+//     setSelectedPoint(null);
+//     setChartsData(null);
+//     setModelResults(null);
+//   };
+
+//   // Show loading state
+//   if (!csvLoaded && !csvError) {
+//     return (
+//       <div className="app">
+//         <Header />
+//         <div className="loading-container">
+//           <div className="loading-spinner"></div>
+//           <p>Loading CSV data...</p>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   // Show error state
+//   if (csvError) {
+//     return (
+//       <div className="app">
+//         <Header />
+//         <ErrorPanel error={csvError} />
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div className="app">
+//       <Header />
+
+//       <div className="main-layout">
+//         <MapView 
+//           onDataInputComplete={handleDataInputComplete}
+//           csvData={csvData}
+//         />
+//         <div className="right-panel">
+//           {!chartsData && !modelResults && (
+//             <div className="empty-state">
+//               <div className="empty-icon">📍</div>
+//               <p className="empty-title">Select Location</p>
+//               <p className="empty-text">Click on the map to place a marker and enter rainfall/runoff values</p>
+//               <div className="csv-info-badge">
+//                 ✅ CSV Loaded: {csvData?.length || 0} data points
+//               </div>
+//             </div>
+//           )}
+
+//           {chartsData && !modelResults && (
+//             <ChartsPanel 
+//               selectedPoint={selectedPoint}
+//               chartsData={chartsData}
+//               csvData={csvData}
+//               onRunModels={handleRunModels}
+//             />
+//           )}
+
+//           {modelResults && (
+//             <ResultsPanel 
+//               selectedPoint={selectedPoint}
+//               chartsData={chartsData}
+//               modelResults={modelResults}
+//               onReset={handleReset}
+//             />
+//           )}
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+
+
+
+
+
+
+
+
+
+
 import { useState, useEffect } from "react";
 import Header from "./components/Header";
 import MapView from "./components/MapView";
@@ -12,7 +148,7 @@ export default function App() {
   const [csvData, setCsvData] = useState(null);
   const [csvError, setCsvError] = useState(null);
   const [selectedPoint, setSelectedPoint] = useState(null);
-  const [chartsData, setChartsData] = useState(null);
+  const [showCharts, setShowCharts] = useState(false);
   const [modelResults, setModelResults] = useState(null);
 
   // Load CSV on mount
@@ -24,9 +160,11 @@ export default function App() {
         setCsvLoaded(true);
         console.log('✅ CSV Loaded:', result.report);
         
-        // Show warnings if any
+        // Show warnings if any (but don't block)
         if (result.warnings && result.warnings.length > 0) {
-          console.warn('⚠️ CSV Warnings:', result.warnings);
+          console.warn('⚠️ CSV Warnings:', result.warnings.length, 'warnings');
+          // Only show first 5 warnings to avoid console spam
+          console.warn('Sample warnings:', result.warnings.slice(0, 5));
         }
       } catch (error) {
         console.error('❌ CSV Load Failed:', error);
@@ -39,12 +177,8 @@ export default function App() {
 
   const handleDataInputComplete = (data) => {
     setSelectedPoint(data.point);
-    setChartsData({
-      rainfallInput: data.rainfallInput,
-      runoffInput: data.runoffInput,
-      matchResult: data.matchResult,
-      timestamp: data.timestamp,
-    });
+    setShowCharts(true);
+    setModelResults(null); // Reset model results when loading new data
   };
 
   const handleRunModels = (results) => {
@@ -53,7 +187,7 @@ export default function App() {
 
   const handleReset = () => {
     setSelectedPoint(null);
-    setChartsData(null);
+    setShowCharts(false);
     setModelResults(null);
   };
 
@@ -65,6 +199,7 @@ export default function App() {
         <div className="loading-container">
           <div className="loading-spinner"></div>
           <p>Loading CSV data...</p>
+          <p className="loading-subtext">Reading {csvData?.length || 3319} observations...</p>
         </div>
       </div>
     );
@@ -90,21 +225,36 @@ export default function App() {
           csvData={csvData}
         />
         <div className="right-panel">
-          {!chartsData && !modelResults && (
+          {!showCharts && !modelResults && (
             <div className="empty-state">
               <div className="empty-icon">📍</div>
               <p className="empty-title">Select Location</p>
-              <p className="empty-text">Click on the map to place a marker and enter rainfall/runoff values</p>
+              <p className="empty-text">
+                Click on the map to place a marker and load the complete rainfall-runoff dataset
+              </p>
               <div className="csv-info-badge">
-                ✅ CSV Loaded: {csvData?.length || 0} data points
+                ✅ Click and Select the point on the Map and again click on “Load Data” to visualize: {csvData?.length || 0} data points
+              </div>
+              <div className="empty-features">
+                <div className="feature-item">
+                  <span className="feature-icon">🌧️</span>
+                  <span className="feature-text">Rainfall data (inverted bars)</span>
+                </div>
+                <div className="feature-item">
+                  <span className="feature-icon">💧</span>
+                  <span className="feature-text">Runoff data (area chart)</span>
+                </div>
+                <div className="feature-item">
+                  <span className="feature-icon">📊</span>
+                  <span className="feature-text">Combined visualization</span>
+                </div>
               </div>
             </div>
           )}
 
-          {chartsData && !modelResults && (
+          {showCharts && !modelResults && (
             <ChartsPanel 
               selectedPoint={selectedPoint}
-              chartsData={chartsData}
               csvData={csvData}
               onRunModels={handleRunModels}
             />
@@ -113,7 +263,6 @@ export default function App() {
           {modelResults && (
             <ResultsPanel 
               selectedPoint={selectedPoint}
-              chartsData={chartsData}
               modelResults={modelResults}
               onReset={handleReset}
             />
