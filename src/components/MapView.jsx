@@ -396,6 +396,274 @@
 // }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// import {
+//   MapContainer,
+//   TileLayer,
+//   Marker,
+//   Popup,
+//   useMapEvents,
+//   GeoJSON,
+//   LayersControl,
+// } from "react-leaflet";
+// import { useState, useRef, useEffect } from "react";
+// import L from "leaflet";
+// import "leaflet/dist/leaflet.css";
+
+// /* ---------- Fix Leaflet marker icons ---------- */
+// delete L.Icon.Default.prototype._getIconUrl;
+// L.Icon.Default.mergeOptions({
+//   iconRetinaUrl:
+//     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+//   iconUrl:
+//     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+//   shadowUrl:
+//     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+// });
+
+// /* ---------- GeoJSON Styles ---------- */
+// const catchmentStyle = {
+//   fillColor: "#00ff88",
+//   weight: 3,
+//   opacity: 1,
+//   color: "#00ff88",
+//   fillOpacity: 0.15,
+// };
+
+// const riverStyle = {
+//   color: "#00c8ff",
+//   weight: 3,
+//   opacity: 0.9,
+// };
+
+// const outletStyle = {
+//   radius: 6,
+//   fillColor: "#ff1744",
+//   color: "#ffffff",
+//   weight: 2,
+//   opacity: 1,
+//   fillOpacity: 1,
+// };
+
+// /* ---------- Map Click Handler ---------- */
+// function ClickHandler({ onPointSelect, disabled }) {
+//   useMapEvents({
+//     click(e) {
+//       if (disabled) return;
+//       onPointSelect(e.latlng);
+//     },
+//   });
+//   return null;
+// }
+
+// export default function MapView({ onDataInputComplete, csvData }) {
+//   const [point, setPoint] = useState(null);
+//   const [showPopup, setShowPopup] = useState(false);
+
+//   const [catchmentData, setCatchmentData] = useState(null);
+//   const [riverData, setRiverData] = useState(null);
+//   const [outletData, setOutletData] = useState(null);
+
+//   const popupRef = useRef(null);
+
+//   /* ---------- GeoJSON Loader ---------- */
+//   useEffect(() => {
+//     const loadGeoJSON = async () => {
+//       try {
+//         const [c, r, o] = await Promise.all([
+//           fetch("/geojson/catchment.geojson").then((r) => r.json()),
+//           fetch("/geojson/river.geojson").then((r) => r.json()),
+//           fetch("/geojson/outlet.geojson").then((r) => r.json()),
+//         ]);
+
+//         setCatchmentData(c);
+//         setRiverData(r);
+//         setOutletData(o);
+
+//         console.log("✅ GeoJSON loaded");
+//       } catch (err) {
+//         console.error("❌ GeoJSON load error:", err);
+//       }
+//     };
+//     loadGeoJSON();
+//   }, []);
+
+//   /* ---------- Popup Click Lock ---------- */
+//   useEffect(() => {
+//     if (popupRef.current?._container) {
+//       L.DomEvent.disableClickPropagation(popupRef.current._container);
+//       L.DomEvent.disableScrollPropagation(popupRef.current._container);
+//     }
+//   }, [showPopup]);
+
+//   /* ---------- Logic ---------- */
+//   const handlePointSelect = (latlng) => {
+//     if (point) return;
+//     setPoint(latlng);
+//     setShowPopup(true);
+//   };
+
+//   const handleLoadData = () => {
+//     // Pass data to parent - no validation needed
+//     onDataInputComplete({
+//       point,
+//       timestamp: new Date().toISOString(),
+//     });
+//     setShowPopup(false);
+//   };
+
+//   const stop = (e) => {
+//     e.stopPropagation();
+//     e.preventDefault();
+//   };
+
+//   return (
+//     <MapContainer
+//       center={[20.5, 82.5]}
+//       zoom={5}
+//       className="map"
+//       style={{ height: "100%", width: "100%" }}
+//     >
+//       {/* ---------- Base Maps (HYBRID DEFAULT) ---------- */}
+//       <LayersControl position="topright">
+//         <LayersControl.BaseLayer checked name="Hybrid (Default)">
+//           <TileLayer
+//             url="https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+//             subdomains={["mt0", "mt1", "mt2", "mt3"]}
+//             attribution="© Google Hybrid"
+//           />
+//         </LayersControl.BaseLayer>
+
+//         <LayersControl.BaseLayer name="Satellite">
+//           <TileLayer
+//             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+//             attribution="© Esri — World Imagery"
+//           />
+//         </LayersControl.BaseLayer>
+
+//         <LayersControl.BaseLayer name="Terrain">
+//           <TileLayer
+//             url="https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}"
+//             subdomains={["mt0", "mt1", "mt2", "mt3"]}
+//             attribution="© Google Terrain"
+//           />
+//         </LayersControl.BaseLayer>
+//       </LayersControl>
+
+//       {/* ---------- GeoJSON Layers ---------- */}
+//       {catchmentData && (
+//         <GeoJSON data={catchmentData} style={catchmentStyle} />
+//       )}
+//       {riverData && <GeoJSON data={riverData} style={riverStyle} />}
+//       {outletData && (
+//         <GeoJSON
+//           data={outletData}
+//           pointToLayer={(f, latlng) =>
+//             L.circleMarker(latlng, outletStyle)
+//           }
+//         />
+//       )}
+
+//       <ClickHandler onPointSelect={handlePointSelect} disabled={showPopup} />
+
+//       {/* ---------- Simplified Popup ---------- */}
+//       {point && showPopup && (
+//         <Marker position={[point.lat, point.lng]}>
+//           <Popup
+//             ref={popupRef}
+//             closeOnClick={false}
+//             autoClose={false}
+//             closeButton
+//             className="map-popup"
+//           >
+//             <div className="popup-inner" onClick={stop}>
+//               <div className="popup-header">
+//                 <h4>📊 Load CSV Data for Analysis</h4>
+//                 <p className="popup-subtitle">
+//                   This will display rainfall-runoff data for all {csvData?.length || 0} time steps
+//                 </p>
+//               </div>
+
+//               <div className="location-display">
+//                 <div className="location-item">
+//                   <span className="location-label">📍 Selected Location:</span>
+//                   <span className="location-value">
+//                     {point.lat.toFixed(4)}°N, {point.lng.toFixed(4)}°E
+//                   </span>
+//                 </div>
+//                 <div className="location-item">
+//                   <span className="location-label">📈 Total Data Points:</span>
+//                   <span className="location-value">{csvData?.length || 0} observations</span>
+//                 </div>
+//               </div>
+
+//               <button
+//                 className="popup-load-btn"
+//                 onClick={handleLoadData}
+//               >
+//                 ✓ Load Complete Dataset
+//               </button>
+
+//               <div className="popup-info">
+//                 <p>
+//                   💡 The combined rainfall-runoff graph will show the entire time series
+//                   with rainfall (inverted bars) and runoff (area chart) together.
+//                 </p>
+//               </div>
+//             </div>
+//           </Popup>
+//         </Marker>
+//       )}
+//     </MapContainer>
+//   );
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import {
   MapContainer,
   TileLayer,
@@ -408,6 +676,8 @@ import {
 import { useState, useRef, useEffect } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+
+import { loadCSVFromFile } from "../utils/dataLoader";
 
 /* ---------- Fix Leaflet marker icons ---------- */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -455,7 +725,7 @@ function ClickHandler({ onPointSelect, disabled }) {
   return null;
 }
 
-export default function MapView({ onDataInputComplete, csvData }) {
+export default function MapView({ onDataInputComplete, pointFileMemory }) {
   const [point, setPoint] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
 
@@ -464,6 +734,12 @@ export default function MapView({ onDataInputComplete, csvData }) {
   const [outletData, setOutletData] = useState(null);
 
   const popupRef = useRef(null);
+
+  // Upload state
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [loadingCSV, setLoadingCSV] = useState(false);
+  const [fileError, setFileError] = useState(null);
+  const [fileReport, setFileReport] = useState(null);
 
   /* ---------- GeoJSON Loader ---------- */
   useEffect(() => {
@@ -487,33 +763,116 @@ export default function MapView({ onDataInputComplete, csvData }) {
     loadGeoJSON();
   }, []);
 
-  /* ---------- Popup Click Lock ---------- */
+  /* ---------- Popup Click Lock (IMPORTANT FIX) ---------- */
   useEffect(() => {
-    if (popupRef.current?._container) {
-      L.DomEvent.disableClickPropagation(popupRef.current._container);
-      L.DomEvent.disableScrollPropagation(popupRef.current._container);
-    }
+    if (!popupRef.current?._container) return;
+
+    const container = popupRef.current._container;
+
+    // Leaflet disables clicks/scroll inside popup. We allow it.
+    L.DomEvent.disableClickPropagation(container);
+    L.DomEvent.disableScrollPropagation(container);
+
+    // Extra: stop Leaflet from blocking file input click
+    const stopEvents = (e) => {
+      e.stopPropagation();
+    };
+
+    // Attach listeners so file input works
+    container.addEventListener("mousedown", stopEvents, true);
+    container.addEventListener("touchstart", stopEvents, true);
+    container.addEventListener("pointerdown", stopEvents, true);
+
+    return () => {
+      container.removeEventListener("mousedown", stopEvents, true);
+      container.removeEventListener("touchstart", stopEvents, true);
+      container.removeEventListener("pointerdown", stopEvents, true);
+    };
   }, [showPopup]);
-
-  /* ---------- Logic ---------- */
-  const handlePointSelect = (latlng) => {
-    if (point) return;
-    setPoint(latlng);
-    setShowPopup(true);
-  };
-
-  const handleLoadData = () => {
-    // Pass data to parent - no validation needed
-    onDataInputComplete({
-      point,
-      timestamp: new Date().toISOString(),
-    });
-    setShowPopup(false);
-  };
 
   const stop = (e) => {
     e.stopPropagation();
     e.preventDefault();
+  };
+
+  const handlePointSelect = (latlng) => {
+    setPoint(latlng);
+    setShowPopup(true);
+
+    // Reset popup state
+    setSelectedFile(null);
+    setFileError(null);
+    setFileReport(null);
+  };
+
+  // Key for point memory
+  const pointKey = point
+    ? `${point.lat.toFixed(4)},${point.lng.toFixed(4)}`
+    : null;
+
+  const lastMemory = pointKey ? pointFileMemory?.[pointKey] : null;
+
+  const handleFilePick = async (file) => {
+    if (!file) return;
+
+    setSelectedFile(file);
+    setFileError(null);
+    setFileReport(null);
+
+    setLoadingCSV(true);
+    try {
+      const validated = await loadCSVFromFile(file);
+      setFileReport({
+        name: file.name,
+        rows: validated.data.length,
+        report: validated.report,
+      });
+    } catch (err) {
+      setFileError(err.message);
+    } finally {
+      setLoadingCSV(false);
+    }
+  };
+
+  const handleLoadData = async () => {
+    if (!selectedFile && !lastMemory) {
+      setFileError("Please choose a CSV file first.");
+      return;
+    }
+
+    const fileToUse = selectedFile || lastMemory?.file;
+
+    if (!fileToUse) {
+      setFileError("Previous file not found. Please upload again.");
+      return;
+    }
+
+    setLoadingCSV(true);
+    setFileError(null);
+
+    try {
+      const validated = await loadCSVFromFile(fileToUse);
+
+      onDataInputComplete({
+        point,
+        csvData: validated.data,
+        file: fileToUse,
+        fileName: fileToUse.name,
+      });
+
+      setShowPopup(false);
+    } catch (err) {
+      setFileError(err.message);
+    } finally {
+      setLoadingCSV(false);
+    }
+  };
+
+  // Drag drop
+  const handleDrop = (e) => {
+    stop(e);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFilePick(file);
   };
 
   return (
@@ -523,7 +882,7 @@ export default function MapView({ onDataInputComplete, csvData }) {
       className="map"
       style={{ height: "100%", width: "100%" }}
     >
-      {/* ---------- Base Maps (HYBRID DEFAULT) ---------- */}
+      {/* ---------- Base Maps ---------- */}
       <LayersControl position="topright">
         <LayersControl.BaseLayer checked name="Hybrid (Default)">
           <TileLayer
@@ -550,22 +909,18 @@ export default function MapView({ onDataInputComplete, csvData }) {
       </LayersControl>
 
       {/* ---------- GeoJSON Layers ---------- */}
-      {catchmentData && (
-        <GeoJSON data={catchmentData} style={catchmentStyle} />
-      )}
+      {catchmentData && <GeoJSON data={catchmentData} style={catchmentStyle} />}
       {riverData && <GeoJSON data={riverData} style={riverStyle} />}
       {outletData && (
         <GeoJSON
           data={outletData}
-          pointToLayer={(f, latlng) =>
-            L.circleMarker(latlng, outletStyle)
-          }
+          pointToLayer={(f, latlng) => L.circleMarker(latlng, outletStyle)}
         />
       )}
 
       <ClickHandler onPointSelect={handlePointSelect} disabled={showPopup} />
 
-      {/* ---------- Simplified Popup ---------- */}
+      {/* ---------- Upload Popup ---------- */}
       {point && showPopup && (
         <Marker position={[point.lat, point.lng]}>
           <Popup
@@ -574,12 +929,14 @@ export default function MapView({ onDataInputComplete, csvData }) {
             autoClose={false}
             closeButton
             className="map-popup"
+            autoPan={true}
+            keepInView={true}
           >
             <div className="popup-inner" onClick={stop}>
               <div className="popup-header">
-                <h4>📊 Load CSV Data for Analysis</h4>
+                <h4>📂 Upload CSV for This Location</h4>
                 <p className="popup-subtitle">
-                  This will display rainfall-runoff data for all {csvData?.length || 0} time steps
+                  Upload any rainfall-runoff CSV file from your storage.
                 </p>
               </div>
 
@@ -590,23 +947,96 @@ export default function MapView({ onDataInputComplete, csvData }) {
                     {point.lat.toFixed(4)}°N, {point.lng.toFixed(4)}°E
                   </span>
                 </div>
-                <div className="location-item">
-                  <span className="location-label">📈 Total Data Points:</span>
-                  <span className="location-value">{csvData?.length || 0} observations</span>
-                </div>
+
+                {lastMemory?.fileName && (
+                  <div className="location-item">
+                    <span className="location-label">🕒 Last File:</span>
+                    <span className="location-value">{lastMemory.fileName}</span>
+                  </div>
+                )}
               </div>
 
+              {/* Drag & Drop Area */}
+              <div
+                onDrop={handleDrop}
+                onDragOver={(e) => e.preventDefault()}
+                style={{
+                  border: "2px dashed #94a3b8",
+                  borderRadius: 10,
+                  padding: 14,
+                  background: "#f8fafc",
+                  marginBottom: 12,
+                  cursor: "pointer",
+                }}
+              >
+                <p style={{ margin: 0, fontSize: 13, color: "#475569" }}>
+                  Drag & Drop CSV here, or click below to choose
+                </p>
+              </div>
+
+              {/* Choose file (NO STYLE CHANGE, but now works) */}
+              <input
+                type="file"
+                accept=".csv"
+                onClick={(e) => e.stopPropagation()} // CRITICAL
+                onChange={(e) => handleFilePick(e.target.files?.[0])}
+                style={{ marginBottom: 12, width: "100%" }}
+              />
+
+              {/* Report */}
+              {loadingCSV && (
+                <div style={{ fontSize: 13, color: "#64748b", marginBottom: 10 }}>
+                  ⏳ Reading CSV...
+                </div>
+              )}
+
+              {fileReport && (
+                <div
+                  style={{
+                    fontSize: 13,
+                    background: "#dcfce7",
+                    border: "1px solid #86efac",
+                    padding: 10,
+                    borderRadius: 8,
+                    marginBottom: 10,
+                    color: "#166534",
+                  }}
+                >
+                  ✅ Selected: <b>{fileReport.name}</b> <br />
+                  Rows: <b>{fileReport.rows}</b>
+                </div>
+              )}
+
+              {fileError && (
+                <div
+                  style={{
+                    fontSize: 13,
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    padding: 10,
+                    borderRadius: 8,
+                    marginBottom: 10,
+                    color: "#991b1b",
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  ❌ {fileError}
+                </div>
+              )}
+
+              {/* Load */}
               <button
                 className="popup-load-btn"
                 onClick={handleLoadData}
+                disabled={loadingCSV}
               >
-                ✓ Load Complete Dataset
+                {loadingCSV ? "Loading..." : "✓ Load Data & Visualize"}
               </button>
 
               <div className="popup-info">
                 <p>
-                  💡 The combined rainfall-runoff graph will show the entire time series
-                  with rainfall (inverted bars) and runoff (area chart) together.
+                  💡 You can upload a new CSV anytime. The last uploaded file is
+                  remembered for this point.
                 </p>
               </div>
             </div>
@@ -616,4 +1046,3 @@ export default function MapView({ onDataInputComplete, csvData }) {
     </MapContainer>
   );
 }
-
