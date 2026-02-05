@@ -672,6 +672,7 @@ import {
   useMapEvents,
   GeoJSON,
   LayersControl,
+  useMap,
 } from "react-leaflet";
 import { useState, useRef, useEffect } from "react";
 import L from "leaflet";
@@ -722,6 +723,59 @@ function ClickHandler({ onPointSelect, disabled }) {
       onPointSelect(e.latlng);
     },
   });
+  return null;
+}
+
+/* ============================================================
+   🔁 Refresh Button Control (TOP-RIGHT)
+   - Does NOT affect Choose File styling
+   - Only resets selected point + popup state
+============================================================ */
+function ResetPointControl({ onReset }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map) return;
+
+    const control = L.control({ position: "topright" });
+
+    control.onAdd = function () {
+      const div = L.DomUtil.create("div", "leaflet-bar leaflet-control");
+
+      div.innerHTML = `
+        <button
+          type="button"
+          class="map-reset-btn"
+          title="Reset point selection"
+          aria-label="Reset point selection"
+        >
+          ↻
+        </button>
+      `;
+
+      const btn = div.querySelector("button");
+
+      // Prevent map click/drag
+      L.DomEvent.disableClickPropagation(div);
+      L.DomEvent.disableScrollPropagation(div);
+
+      // Click handler
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onReset();
+      });
+
+      return div;
+    };
+
+    control.addTo(map);
+
+    return () => {
+      control.remove();
+    };
+  }, [map, onReset]);
+
   return null;
 }
 
@@ -875,6 +929,18 @@ export default function MapView({ onDataInputComplete, pointFileMemory }) {
     if (file) handleFilePick(file);
   };
 
+  // ✅ RESET HANDLER (for ↻ button)
+  const handleResetPoint = () => {
+    setPoint(null);
+    setShowPopup(false);
+
+    // reset upload states too
+    setSelectedFile(null);
+    setLoadingCSV(false);
+    setFileError(null);
+    setFileReport(null);
+  };
+
   return (
     <MapContainer
       center={[20.5, 82.5]}
@@ -882,6 +948,9 @@ export default function MapView({ onDataInputComplete, pointFileMemory }) {
       className="map"
       style={{ height: "100%", width: "100%" }}
     >
+      {/* 🔁 Refresh button */}
+      <ResetPointControl onReset={handleResetPoint} />
+
       {/* ---------- Base Maps ---------- */}
       <LayersControl position="topright">
         <LayersControl.BaseLayer checked name="Hybrid (Default)">
@@ -985,7 +1054,9 @@ export default function MapView({ onDataInputComplete, pointFileMemory }) {
 
               {/* Report */}
               {loadingCSV && (
-                <div style={{ fontSize: 13, color: "#64748b", marginBottom: 10 }}>
+                <div
+                  style={{ fontSize: 13, color: "#64748b", marginBottom: 10 }}
+                >
                   ⏳ Reading CSV...
                 </div>
               )}
