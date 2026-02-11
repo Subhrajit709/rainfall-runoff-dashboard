@@ -952,9 +952,10 @@ export default function ChartsPanel({ selectedPoint, csvData, onRunModels }) {
       const progress = Math.min(1, (ts - start) / duration);
 
       // Ease-in-out
-      const eased = progress < 0.5
-        ? 2 * progress * progress
-        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      const eased =
+        progress < 0.5
+          ? 2 * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 2) / 2;
 
       const nextCount = Math.floor(first + (total - first) * eased);
 
@@ -1033,8 +1034,26 @@ export default function ChartsPanel({ selectedPoint, csvData, onRunModels }) {
                 }}
               />
 
+              {/* ✅ RUNOFF ON LEFT */}
+              <YAxis
+                yAxisId="runoff"
+                domain={[0, Math.max(1, runoffStats.max * 1.1)]}
+                tick={{ fontSize: 11, fill: "#16a34a" }}
+                stroke="#16a34a"
+                width={65}
+                label={{
+                  value: "Runoff (m³/s)",
+                  angle: -90,
+                  position: "insideLeft",
+                  fill: "#16a34a",
+                  fontSize: 12,
+                }}
+              />
+
+              {/* ✅ RAINFALL ON RIGHT (INVERTED) */}
               <YAxis
                 yAxisId="rainfall"
+                orientation="right"
                 reversed={true}
                 domain={[0, Math.max(1, rainfallStats.max * 1.1)]}
                 tick={{ fontSize: 11, fill: "#2563eb" }}
@@ -1042,25 +1061,9 @@ export default function ChartsPanel({ selectedPoint, csvData, onRunModels }) {
                 width={55}
                 label={{
                   value: "Rainfall (mm) ↓",
-                  angle: -90,
-                  position: "insideLeft",
-                  fill: "#2563eb",
-                  fontSize: 12,
-                }}
-              />
-
-              <YAxis
-                yAxisId="runoff"
-                orientation="right"
-                domain={[0, Math.max(1, runoffStats.max * 1.1)]}
-                tick={{ fontSize: 11, fill: "#16a34a" }}
-                stroke="#16a34a"
-                width={65}
-                label={{
-                  value: "Runoff (m³/s)",
                   angle: 90,
                   position: "insideRight",
-                  fill: "#16a34a",
+                  fill: "#2563eb",
                   fontSize: 12,
                 }}
               />

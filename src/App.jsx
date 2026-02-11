@@ -366,9 +366,9 @@ export default function App() {
           {!showCharts && !modelResults && (
             <div className="empty-state">
               <div className="empty-icon">📍</div>
-              <p className="empty-title">Select Location</p>
+              <p className="empty-title">Select Outlet on the Map</p>
               <p className="empty-text">
-                Click on the map to place a marker, then upload any CSV file to
+                Click on the Outlet to place a marker, then upload any CSV file to
                 visualize rainfall–runoff data.
               </p>
 
@@ -378,16 +378,16 @@ export default function App() {
 
               <div className="empty-features">
                 <div className="feature-item">
-                  <span className="feature-icon">🌧️</span>
-                  <span className="feature-text">Rainfall (inverted bars)</span>
+                  {/* <span className="feature-icon">🌧️</span> */}
+                  {/* <span className="feature-text">Rainfall (inverted bars)</span> */}
                 </div>
                 <div className="feature-item">
-                  <span className="feature-icon">💧</span>
-                  <span className="feature-text">Runoff (curve hydrograph)</span>
+                  {/* <span className="feature-icon">💧</span> */}
+                  {/* <span className="feature-text">Runoff (curve hydrograph)</span> */}
                 </div>
                 <div className="feature-item">
-                  <span className="feature-icon">📊</span>
-                  <span className="feature-text">Custom CSV upload anytime</span>
+                  {/* <span className="feature-icon">📊</span> */}
+                  {/* <span className="feature-text">Custom CSV upload anytime</span> */}
                 </div>
               </div>
             </div>

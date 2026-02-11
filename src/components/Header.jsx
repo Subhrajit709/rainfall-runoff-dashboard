@@ -8,13 +8,13 @@ export default function Header() {
         <img src="https://www.nrsc.gov.in/nrscnew/assets/img/footer/isro.png" alt="ISRO" className="isro-logo" />
         <div className="brand-text">
           <div className="brand-main">NRSC | ISRO</div>
-          <div className="brand-sub">Space Applications Centre</div>
+          <div className="brand-sub">National Remote Sensing Centre</div>
         </div>
       </div>
 
       <div className="isro-header__center">
-        <h1 className="main-title">Rainfall-Runoff Hydrological Analysis</h1>
-        <div className="center-sub">Real-time Watershed Modeling &amp; Prediction System</div>
+        <h1 className="main-title">Rainfall-Runoff monitoring dashboard</h1>
+        <div className="center-sub">Real-time Data Visualization & Analysis System</div>
       </div>
 
       <div className="isro-header__right">
