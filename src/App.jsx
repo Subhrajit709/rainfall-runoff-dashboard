@@ -318,13 +318,11 @@ export default function App() {
   const [showCharts, setShowCharts] = useState(false);
   const [modelResults, setModelResults] = useState(null);
 
-  /**
-   * Memory:
-   * { "lat,lng": { file, fileName } }
-   */
   const [pointFileMemory, setPointFileMemory] = useState({});
 
   const handleDataInputComplete = (data) => {
+    console.log("✅ Data input complete:", data);
+
     setSelectedPoint(data.point);
     setCsvData(data.csvData);
     setShowCharts(true);
@@ -368,26 +366,27 @@ export default function App() {
               <div className="empty-icon">📍</div>
               <p className="empty-title">Select Outlet on the Map</p>
               <p className="empty-text">
-                Click on the Outlet to place a marker, then upload any CSV file to
-                visualize rainfall–runoff data.
+                Click on the map to place a marker, then upload a CSV file to
+                visualize rainfall–runoff data. Or click any blue CHIRPS point to
+                view monthly rainfall.
               </p>
 
               <div className="csv-info-badge">
-                📂 Upload CSV after selecting a point (custom file supported)
+                📂 Upload CSV or use CHIRPS rainfall data points
               </div>
 
               <div className="empty-features">
                 <div className="feature-item">
-                  {/* <span className="feature-icon">🌧️</span> */}
-                  {/* <span className="feature-text">Rainfall (inverted bars)</span> */}
+                  <span className="feature-icon">🌧️</span>
+                  <span className="feature-text">Rainfall data visualization</span>
                 </div>
                 <div className="feature-item">
-                  {/* <span className="feature-icon">💧</span> */}
-                  {/* <span className="feature-text">Runoff (curve hydrograph)</span> */}
+                  <span className="feature-icon">💧</span>
+                  <span className="feature-text">Runoff hydrograph</span>
                 </div>
                 <div className="feature-item">
-                  {/* <span className="feature-icon">📊</span> */}
-                  {/* <span className="feature-text">Custom CSV upload anytime</span> */}
+                  <span className="feature-icon">📊</span>
+                  <span className="feature-text">Model comparison</span>
                 </div>
               </div>
             </div>

@@ -824,13 +824,17 @@ function formatNum(n) {
   return num.toFixed(2);
 }
 
-/**
- * Bin rainfall into equal groups for clarity.
- * Runoff is also averaged per bin so combined chart remains readable.
- */
 function makeBinnedData(data, binSize = 7) {
-  const out = [];
+  if (data.length <= 12) {
+    return data.map((d) => ({
+      time: d.time,
+      month: d.month,
+      rainfall_binned: d.rainfall,
+      runoff: d.runoff || 0,
+    }));
+  }
 
+  const out = [];
   for (let i = 0; i < data.length; i += binSize) {
     const chunk = data.slice(i, i + binSize);
 
@@ -853,37 +857,33 @@ function makeBinnedData(data, binSize = 7) {
 
 export default function ChartsPanel({ selectedPoint, csvData, onRunModels }) {
   const [isRunning, setIsRunning] = useState(false);
-
-  // Progressive reveal animation
   const [visibleCount, setVisibleCount] = useState(0);
-
-  // Track dataset changes
   const lastKeyRef = useRef("");
 
   if (!csvData || !selectedPoint) return null;
 
   const rawData = csvData;
+  const isMonthlyData = rawData.length === 12 && rawData[0]?.month;
 
   const binSize = useMemo(() => {
+    if (isMonthlyData) return 1;
     const n = rawData.length;
     if (n <= 600) return 1;
     if (n <= 1200) return 3;
     if (n <= 2500) return 5;
     return 7;
-  }, [rawData.length]);
+  }, [rawData.length, isMonthlyData]);
 
   const chartDataFull = useMemo(
     () => makeBinnedData(rawData, binSize),
     [rawData, binSize]
   );
 
-  // Only render part of chartData (progressive reveal)
   const chartData = useMemo(() => {
     if (visibleCount <= 0) return [];
     return chartDataFull.slice(0, visibleCount);
   }, [chartDataFull, visibleCount]);
 
-  // Stats (raw)
   const rainfallStats = useMemo(() => {
     const vals = rawData.map((d) => Number(d.rainfall) || 0);
     const max = Math.max(...vals);
@@ -900,64 +900,67 @@ export default function ChartsPanel({ selectedPoint, csvData, onRunModels }) {
     return { max, min, avg };
   }, [rawData]);
 
-  // Tick interval
   const tickInterval = useMemo(() => {
+    if (isMonthlyData) return 0;
     const desiredLabels = 10;
     const n = Math.max(1, chartDataFull.length);
     return Math.max(1, Math.floor(n / desiredLabels));
-  }, [chartDataFull.length]);
+  }, [chartDataFull.length, isMonthlyData]);
 
-  // Tooltip
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload || !payload.length) return null;
     const p = payload[0]?.payload;
     if (!p) return null;
 
     return (
-      <div className="custom-tooltip" style={{ borderColor: "#2563eb" }}>
-        <p className="tooltip-label">Day {label}</p>
-
-        <p className="tooltip-rainfall" style={{ color: "#2563eb" }}>
-          🌧️ Rainfall: {formatNum(p.rainfall_binned)} mm (bin)
+      <div
+        style={{
+          background: "white",
+          border: "2px solid #2563eb",
+          borderRadius: "8px",
+          padding: "12px",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+        }}
+      >
+        <p style={{ margin: "0 0 8px 0", fontWeight: "600", color: "#1e293b" }}>
+          {isMonthlyData ? p.month : `Day ${label}`}
         </p>
 
-        <p className="tooltip-runoff" style={{ color: "#16a34a" }}>
-          💧 Runoff: {formatNum(p.runoff)} m³/s
+        <p style={{ margin: "4px 0", color: "#2563eb", fontSize: "13px" }}>
+          🌧️ Rainfall: {formatNum(p.rainfall_binned)} mm
         </p>
+
+        {p.runoff > 0 && (
+          <p style={{ margin: "4px 0", color: "#16a34a", fontSize: "13px" }}>
+            💧 Runoff: {formatNum(p.runoff)} m³/s
+          </p>
+        )}
       </div>
     );
   };
 
-  // Progressive reveal animation (smooth)
-  const datasetKey = `${selectedPoint.lat.toFixed(4)}_${selectedPoint.lng.toFixed(
-    4
-  )}_${rawData.length}_${binSize}`;
+  const datasetKey = `${selectedPoint.lat.toFixed(4)}_${selectedPoint.lng.toFixed(4)}_${rawData.length}_${binSize}`;
 
   useEffect(() => {
     if (lastKeyRef.current === datasetKey) return;
     lastKeyRef.current = datasetKey;
 
-    // Immediate show first small part (instant)
     const total = chartDataFull.length;
-    const first = Math.min(40, total);
+    
+    // Start from 0 for smooth animation effect
+    setVisibleCount(0);
 
-    setVisibleCount(first);
-
-    // Then smoothly reveal the rest
     let start = null;
-    const duration = 2200; // smooth "water" feel
+    const duration = isMonthlyData ? 1200 : 2200; // Faster for monthly data
 
     function step(ts) {
       if (!start) start = ts;
       const progress = Math.min(1, (ts - start) / duration);
 
-      // Ease-in-out
-      const eased =
-        progress < 0.5
-          ? 2 * progress * progress
-          : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      // Smooth ease-out animation
+      const eased = 1 - Math.pow(1 - progress, 3);
 
-      const nextCount = Math.floor(first + (total - first) * eased);
+      const nextCount = Math.floor(total * eased);
 
       setVisibleCount(nextCount);
 
@@ -965,9 +968,14 @@ export default function ChartsPanel({ selectedPoint, csvData, onRunModels }) {
     }
 
     requestAnimationFrame(step);
-  }, [datasetKey, chartDataFull.length]);
+  }, [datasetKey, chartDataFull.length, isMonthlyData]);
 
   const handleRunModels = async () => {
+    if (isMonthlyData) {
+      alert("Model analysis is not available for monthly CHIRPS data");
+      return;
+    }
+
     setIsRunning(true);
     await new Promise((resolve) => setTimeout(resolve, 1200));
 
@@ -999,58 +1007,73 @@ export default function ChartsPanel({ selectedPoint, csvData, onRunModels }) {
 
           <span className="info-badge">📊 Dataset</span>
           <span className="info-value">
-            {rawData.length} days (Rainfall shown as {binSize}-day bins)
+            {isMonthlyData
+              ? "12 months (2025)"
+              : `${rawData.length} days (${binSize}-day bins)`}
           </span>
         </div>
       </div>
 
       <div className="combined-chart-section">
         <div className="chart-header">
-          <h3>Rainfall–Runoff Hydrograph</h3>
+          <h3>
+            {isMonthlyData
+              ? "Monthly Rainfall (CHIRPS 2025)"
+              : "Rainfall–Runoff Hydrograph"}
+          </h3>
           <p className="chart-description">
-            Rainfall (blue, inverted) + Runoff (green)
+            {isMonthlyData
+              ? "Monthly rainfall distribution (estimated from annual total)"
+              : "Rainfall (blue, inverted) + Runoff (green)"}
           </p>
         </div>
 
-        <div style={{ width: "100%", height: 420 }}>
+        <div style={{ width: "100%", height: "450px" }}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={chartData}
-              margin={{ top: 10, right: 35, left: 35, bottom: 25 }}
+              margin={{ top: 10, right: 35, left: 35, bottom: 60 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
 
               <XAxis
-                dataKey="time"
+                dataKey={isMonthlyData ? "month" : "time"}
                 interval={tickInterval}
                 tick={{ fontSize: 11, fill: "#64748b" }}
                 stroke="#94a3b8"
-                label={{
-                  value: "Time (days)",
-                  position: "insideBottom",
-                  offset: -10,
-                  fill: "#64748b",
-                  fontSize: 12,
-                }}
+                angle={isMonthlyData ? -45 : 0}
+                textAnchor={isMonthlyData ? "end" : "middle"}
+                height={isMonthlyData ? 80 : 30}
+                label={
+                  !isMonthlyData
+                    ? {
+                        value: "Time (days)",
+                        position: "insideBottom",
+                        offset: -10,
+                        fill: "#64748b",
+                        fontSize: 12,
+                      }
+                    : undefined
+                }
               />
 
-              {/* ✅ RUNOFF ON LEFT */}
-              <YAxis
-                yAxisId="runoff"
-                domain={[0, Math.max(1, runoffStats.max * 1.1)]}
-                tick={{ fontSize: 11, fill: "#16a34a" }}
-                stroke="#16a34a"
-                width={65}
-                label={{
-                  value: "Runoff (m³/s)",
-                  angle: -90,
-                  position: "insideLeft",
-                  fill: "#16a34a",
-                  fontSize: 12,
-                }}
-              />
+              {runoffStats.max > 0 && (
+                <YAxis
+                  yAxisId="runoff"
+                  domain={[0, Math.max(1, runoffStats.max * 1.1)]}
+                  tick={{ fontSize: 11, fill: "#16a34a" }}
+                  stroke="#16a34a"
+                  width={65}
+                  label={{
+                    value: "Runoff (m³/s)",
+                    angle: -90,
+                    position: "insideLeft",
+                    fill: "#16a34a",
+                    fontSize: 12,
+                  }}
+                />
+              )}
 
-              {/* ✅ RAINFALL ON RIGHT (INVERTED) */}
               <YAxis
                 yAxisId="rainfall"
                 orientation="right"
@@ -1070,55 +1093,75 @@ export default function ChartsPanel({ selectedPoint, csvData, onRunModels }) {
 
               <Tooltip content={<CustomTooltip />} />
 
-              {/* No built-in animation. Progressive reveal does the smooth effect. */}
               <Bar
                 yAxisId="rainfall"
                 dataKey="rainfall_binned"
                 fill="#2563eb"
                 opacity={0.9}
-                barSize={8}
+                barSize={isMonthlyData ? 24 : 8}
                 isAnimationActive={false}
               />
 
-              <Line
-                yAxisId="runoff"
-                type="natural"
-                dataKey="runoff"
-                stroke="#16a34a"
-                strokeWidth={2.3}
-                dot={false}
-                isAnimationActive={false}
-              />
+              {runoffStats.max > 0 && (
+                <Line
+                  yAxisId="runoff"
+                  type="natural"
+                  dataKey="runoff"
+                  stroke="#16a34a"
+                  strokeWidth={2.3}
+                  dot={false}
+                  isAnimationActive={false}
+                />
+              )}
             </ComposedChart>
           </ResponsiveContainer>
         </div>
 
         <div style={{ marginTop: 10, fontSize: 13, color: "#475569" }}>
           <strong>Rainfall</strong> Max: {formatNum(rainfallStats.max)} mm | Avg:{" "}
-          {formatNum(rainfallStats.avg)} mm{" "}
-          <span style={{ margin: "0 10px" }}>|</span>
-          <strong>Runoff</strong> Max: {formatNum(runoffStats.max)} m³/s | Avg:{" "}
-          {formatNum(runoffStats.avg)} m³/s
+          {formatNum(rainfallStats.avg)} mm
+          {runoffStats.max > 0 && (
+            <>
+              {" "}
+              <span style={{ margin: "0 10px" }}>|</span>
+              <strong>Runoff</strong> Max: {formatNum(runoffStats.max)} m³/s |
+              Avg: {formatNum(runoffStats.avg)} m³/s
+            </>
+          )}
         </div>
       </div>
 
-      <div className="panel-actions">
-        <button className="run-button" onClick={handleRunModels} disabled={isRunning}>
-          {isRunning ? (
-            <>
-              <span className="spinner"></span>
-              Running Model Analysis...
-            </>
-          ) : (
-            <>🚀 Run Model Comparison</>
-          )}
-        </button>
-      </div>
+      {!isMonthlyData && (
+        <div className="panel-actions">
+          <button
+            className="run-button"
+            onClick={handleRunModels}
+            disabled={isRunning}
+          >
+            {isRunning ? (
+              <>
+                <span className="spinner"></span>
+                Running Model Analysis...
+              </>
+            ) : (
+              <>🚀 Run Model Comparison</>
+            )}
+          </button>
+        </div>
+      )}
 
       <div className="data-info">
         <p>
-          ✅ Runoff uses <strong>{rawData.length}</strong> points | Rainfall shown
-          as <strong>{binSize}-day bins</strong> for clarity
+          {isMonthlyData ? (
+            <>
+              ✅ CHIRPS rainfall data for <strong>2025</strong> (monthly distribution estimated)
+            </>
+          ) : (
+            <>
+              ✅ Runoff uses <strong>{rawData.length}</strong> points | Rainfall
+              shown as <strong>{binSize}-day bins</strong> for clarity
+            </>
+          )}
         </p>
       </div>
     </div>
