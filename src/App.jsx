@@ -317,8 +317,9 @@ export default function App() {
   const [csvData, setCsvData] = useState(null);
   const [showCharts, setShowCharts] = useState(false);
   const [modelResults, setModelResults] = useState(null);
-
+  const [averageRainfall, setAverageRainfall] = useState(null);
   const [pointFileMemory, setPointFileMemory] = useState({});
+  const [isPolygonAverage, setIsPolygonAverage] = useState(false);
 
   const handleDataInputComplete = (data) => {
     console.log("✅ Data input complete:", data);
@@ -327,6 +328,8 @@ export default function App() {
     setCsvData(data.csvData);
     setShowCharts(true);
     setModelResults(null);
+    setIsPolygonAverage(data.isPolygonAverage || false);
+    setAverageRainfall(data.averageValue || null);
 
     const key = `${data.point.lat.toFixed(4)},${data.point.lng.toFixed(4)}`;
 
@@ -348,6 +351,8 @@ export default function App() {
     setCsvData(null);
     setShowCharts(false);
     setModelResults(null);
+    setAverageRainfall(null);
+    setIsPolygonAverage(false);
   };
 
   return (
@@ -363,7 +368,13 @@ export default function App() {
         <div className="right-panel">
           {!showCharts && !modelResults && (
             <div className="empty-state">
-              <div className="empty-icon">📍</div>
+             <div className="empty-icon">
+        <img 
+          src="https://cdn-icons-png.flaticon.com/512/5654/5654592.png" 
+          alt="Location Icon" 
+          style={{ width: "210px", height: "210px" ,  margin: "0 auto -60px"}}
+        />
+      </div>
               <p className="empty-title">Select Outlet on the Map</p>
               <p className="empty-text">
                 Click on the map to place a marker, then upload a CSV file to
@@ -377,16 +388,16 @@ export default function App() {
 
               <div className="empty-features">
                 <div className="feature-item">
-                  <span className="feature-icon">🌧️</span>
-                  <span className="feature-text">Rainfall data visualization</span>
+                  {/* <span className="feature-icon">🌧️</span> */}
+                  {/* <span className="feature-text">Rainfall data visualization</span> */}
                 </div>
                 <div className="feature-item">
-                  <span className="feature-icon">💧</span>
-                  <span className="feature-text">Runoff hydrograph</span>
+                  {/* <span className="feature-icon">💧</span> */}
+                  {/* <span className="feature-text">Runoff hydrograph</span> */}
                 </div>
                 <div className="feature-item">
-                  <span className="feature-icon">📊</span>
-                  <span className="feature-text">Model comparison</span>
+                  {/* <span className="feature-icon">📊</span> */}
+                  {/* <span className="feature-text">Model comparison</span> */}
                 </div>
               </div>
             </div>
@@ -397,6 +408,8 @@ export default function App() {
               selectedPoint={selectedPoint}
               csvData={csvData}
               onRunModels={handleRunModels}
+              averageRainfall={averageRainfall}
+              isPolygonAverage={isPolygonAverage}
             />
           )}
 

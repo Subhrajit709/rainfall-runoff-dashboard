@@ -47,7 +47,7 @@
 .empty-icon {
   font-size: 72px;
   margin-bottom: 20px;
-  opacity: 0.6;
+  /* opacity: 0.6; */
 }
 
 .empty-title {
@@ -90,9 +90,9 @@
   gap: 10px;
   font-size: 13px;
   color: #64748b;
-}
+} 
 
-.feature-icon {
+ .feature-icon {
   font-size: 20px;
 }
 
@@ -240,10 +240,35 @@
 /* Upload Popup Specific */
 .upload-popup .leaflet-popup-content-wrapper {
   background: #ffffff;
-  border: 2px solid #dc2626;
+  /* border: 2px solid #3b82f6; */
 }
 
 .upload-popup .leaflet-popup-tip {
   background: #ffffff;
-  border: 2px solid #dc2626;
+  border: 2px solid #3b83f6eb;
+}
+
+
+/* Cluster Icon Styles */
+.custom-cluster-icon {
+  background: transparent !important;
+}
+
+.marker-cluster {
+  background: transparent !important;
+}
+
+.leaflet-cluster-anim .leaflet-marker-icon,
+.leaflet-cluster-anim .leaflet-marker-shadow {
+  transition: transform 0.3s ease-out, opacity 0.3s ease-in;
+}
+
+
+/* Cluster hover tooltip */
+.cluster-marker:hover .cluster-tooltip {
+  opacity: 1 !important;
+}
+
+.custom-cluster-icon {
+  background: transparent !important;
 }

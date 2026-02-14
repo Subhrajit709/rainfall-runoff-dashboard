@@ -813,6 +813,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  LabelList,
 } from "recharts";
 import { calculateModelMetrics } from "../utils/dataLoader";
 
@@ -855,7 +856,28 @@ function makeBinnedData(data, binSize = 7) {
   return out;
 }
 
-export default function ChartsPanel({ selectedPoint, csvData, onRunModels }) {
+const RenderCustomBarLabel = (props) => {
+  const { x, y, width, value } = props;
+  
+  if (!value || value === 0) return null;
+  
+  return (
+    <text
+      x={x + width / 2}
+      y={y - 10}
+      fill="#1d4ed8"
+      textAnchor="middle"
+      dominantBaseline="auto"
+      fontSize="13"
+      fontWeight="700"
+      fontFamily="system-ui, sans-serif"
+    >
+      {value.toFixed(1)}
+    </text>
+  );
+};
+
+export default function ChartsPanel({ selectedPoint, csvData, onRunModels, averageRainfall, isPolygonAverage }) {
   const [isRunning, setIsRunning] = useState(false);
   const [visibleCount, setVisibleCount] = useState(0);
   const lastKeyRef = useRef("");
@@ -864,6 +886,10 @@ export default function ChartsPanel({ selectedPoint, csvData, onRunModels }) {
 
   const rawData = csvData;
   const isMonthlyData = rawData.length === 12 && rawData[0]?.month;
+
+  // Check if this is CHIRPS data (monthly) or uploaded CSV (daily with runoff)
+  const isChirpsData = isMonthlyData;
+  const isUploadedCSV = !isMonthlyData && rawData.some(d => d.runoff > 0);
 
   const binSize = useMemo(() => {
     if (isMonthlyData) return 1;
@@ -939,7 +965,7 @@ export default function ChartsPanel({ selectedPoint, csvData, onRunModels }) {
     );
   };
 
-  const datasetKey = `${selectedPoint.lat.toFixed(4)}_${selectedPoint.lng.toFixed(4)}_${rawData.length}_${binSize}`;
+  const datasetKey = `${selectedPoint.lat.toFixed(4)}_${selectedPoint.lng.toFixed(4)}_${rawData.length}_${binSize}_${isPolygonAverage}`;
 
   useEffect(() => {
     if (lastKeyRef.current === datasetKey) return;
@@ -947,17 +973,15 @@ export default function ChartsPanel({ selectedPoint, csvData, onRunModels }) {
 
     const total = chartDataFull.length;
     
-    // Start from 0 for smooth animation effect
     setVisibleCount(0);
 
     let start = null;
-    const duration = isMonthlyData ? 1200 : 2200; // Faster for monthly data
+    const duration = isMonthlyData ? 1200 : 2200;
 
     function step(ts) {
       if (!start) start = ts;
       const progress = Math.min(1, (ts - start) / duration);
 
-      // Smooth ease-out animation
       const eased = 1 - Math.pow(1 - progress, 3);
 
       const nextCount = Math.floor(total * eased);
@@ -1002,7 +1026,10 @@ export default function ChartsPanel({ selectedPoint, csvData, onRunModels }) {
         <div className="location-info">
           <span className="info-badge">📍 Location</span>
           <span className="info-value">
-            {selectedPoint.lat.toFixed(4)}°N, {selectedPoint.lng.toFixed(4)}°E
+            {isPolygonAverage 
+              ? "Polygon Average" 
+              : `${selectedPoint.lat.toFixed(4)}°N, ${selectedPoint.lng.toFixed(4)}°E`
+            }
           </span>
 
           <span className="info-badge">📊 Dataset</span>
@@ -1017,22 +1044,28 @@ export default function ChartsPanel({ selectedPoint, csvData, onRunModels }) {
       <div className="combined-chart-section">
         <div className="chart-header">
           <h3>
-            {isMonthlyData
+            {isPolygonAverage 
+              ? "Polygon Average Rainfall (CHIRPS 2025)"
+              : isMonthlyData
               ? "Monthly Rainfall (CHIRPS 2025)"
-              : "Rainfall–Runoff Hydrograph"}
+              : "Rainfall–Runoff Hydrograph"
+            }
           </h3>
           <p className="chart-description">
-            {isMonthlyData
+            {isPolygonAverage
+              ? "Average rainfall across all CHIRPS points in the polygon"
+              : isMonthlyData
               ? "Monthly rainfall distribution (estimated from annual total)"
-              : "Rainfall (blue, inverted) + Runoff (green)"}
+              : "Rainfall (blue, inverted) + Runoff (green)"
+            }
           </p>
         </div>
 
-        <div style={{ width: "100%", height: "450px" }}>
+        <div style={{ width: "100%", height: "520px" }}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={chartData}
-              margin={{ top: 10, right: 35, left: 35, bottom: 60 }}
+              margin={{ top: 40, right: 35, left: 35, bottom: 60 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
 
@@ -1078,7 +1111,7 @@ export default function ChartsPanel({ selectedPoint, csvData, onRunModels }) {
                 yAxisId="rainfall"
                 orientation="right"
                 reversed={true}
-                domain={[0, Math.max(1, rainfallStats.max * 1.1)]}
+                domain={[0, Math.max(1, rainfallStats.max * 1.3)]}
                 tick={{ fontSize: 11, fill: "#2563eb" }}
                 stroke="#2563eb"
                 width={55}
@@ -1098,9 +1131,17 @@ export default function ChartsPanel({ selectedPoint, csvData, onRunModels }) {
                 dataKey="rainfall_binned"
                 fill="#2563eb"
                 opacity={0.9}
-                barSize={isMonthlyData ? 24 : 8}
+                barSize={isMonthlyData ? 28 : 8}
                 isAnimationActive={false}
-              />
+              >
+                {/* CRITICAL FIX: Only show labels for CHIRPS data, NOT for uploaded CSV */}
+                {isChirpsData && (
+                  <LabelList
+                    dataKey="rainfall_binned"
+                    content={RenderCustomBarLabel}
+                  />
+                )}
+              </Bar>
 
               {runoffStats.max > 0 && (
                 <Line
@@ -1131,6 +1172,27 @@ export default function ChartsPanel({ selectedPoint, csvData, onRunModels }) {
         </div>
       </div>
 
+      {/* SHOW AVERAGE BELOW CHART FOR POLYGON AVERAGE */}
+      {isPolygonAverage && averageRainfall !== null && (
+        <div
+          style={{
+            padding: "20px",
+            backgroundColor: "#eff6ff",
+            borderRadius: "10px",
+            textAlign: "center",
+            marginTop: "20px",
+            border: "2px solid #bfdbfe",
+          }}
+        >
+          <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "8px", fontWeight: "600" }}>
+            Average Annual Rainfall (GPM)
+          </div>
+          <div style={{ fontSize: "28px", fontWeight: "700", color: "#2563eb" }}>
+            {averageRainfall.toFixed(2)} mm
+          </div>
+        </div>
+      )}
+
       {!isMonthlyData && (
         <div className="panel-actions">
           <button
@@ -1144,7 +1206,7 @@ export default function ChartsPanel({ selectedPoint, csvData, onRunModels }) {
                 Running Model Analysis...
               </>
             ) : (
-              <>🚀 Run Model Comparison</>
+              <>Run Model Comparison</>
             )}
           </button>
         </div>
@@ -1152,7 +1214,11 @@ export default function ChartsPanel({ selectedPoint, csvData, onRunModels }) {
 
       <div className="data-info">
         <p>
-          {isMonthlyData ? (
+          {isPolygonAverage ? (
+            <>
+              ✅ Showing <strong>average rainfall</strong> across all CHIRPS points in the polygon
+            </>
+          ) : isMonthlyData ? (
             <>
               ✅ CHIRPS rainfall data for <strong>2025</strong> (monthly distribution estimated)
             </>
