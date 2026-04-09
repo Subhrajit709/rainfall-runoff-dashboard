@@ -1636,22 +1636,45 @@ export default function MapView({ onDataInputComplete, pointFileMemory }) {
         )}
 
         {/* CLUSTERING WITH RAINFALL TOTALS */}
-        <MarkerClusterGroup
-          chunkedLoading
-          iconCreateFunction={createClusterCustomIcon}
-          showCoverageOnHover={false}
-          spiderfyOnMaxZoom={true}
-          zoomToBoundsOnClick={true}
-          maxClusterRadius={60}
-        >
-          {chirpsPoints.map((point, idx) => (
-            <ChirpsPointMarker 
-              key={idx} 
-              point={point} 
-              onViewChart={handleChirpsViewChart}
-            />
-          ))}
-        </MarkerClusterGroup>
+       // 🔥 ONLY CHANGE: Added jitter to make points look random (NOT grid-like)
+
+...
+
+// ⛔ SKIPPING SAME CODE ABOVE (NO CHANGE)
+// ⛔ KEEP EVERYTHING SAME UNTIL THIS PART
+
+{/* CLUSTERING WITH RAINFALL TOTALS */}
+<MarkerClusterGroup
+  chunkedLoading
+  iconCreateFunction={createClusterCustomIcon}
+  showCoverageOnHover={false}
+  spiderfyOnMaxZoom={true}
+  zoomToBoundsOnClick={true}
+  maxClusterRadius={60}
+>
+  {chirpsPoints.map((point, idx) => {
+    
+    // 🔥 RANDOM JITTER LOGIC (MAIN FIX)
+    const jitterFactor = 0.12; // best balance (natural look)
+
+    const randomLatOffset = (Math.random() - 0.5) * jitterFactor;
+    const randomLngOffset = (Math.random() - 0.5) * jitterFactor;
+
+    const jitteredPoint = {
+      ...point,
+      lat: point.lat + randomLatOffset,
+      lng: point.lng + randomLngOffset,
+    };
+
+    return (
+      <ChirpsPointMarker 
+        key={idx} 
+        point={jitteredPoint} 
+        onViewChart={handleChirpsViewChart}
+      />
+    );
+  })}
+</MarkerClusterGroup>
 
         {uploadMarker && (
           <UploadMarker
