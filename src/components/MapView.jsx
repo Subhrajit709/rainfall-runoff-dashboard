@@ -673,7 +673,6 @@ import {
   Popup,
   CircleMarker,
   Tooltip,
-  LayersControl,
   useMap,
 } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-markercluster";
@@ -681,8 +680,6 @@ import MarkerClusterGroup from "react-leaflet-markercluster";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import Papa from "papaparse";
-
-const { BaseLayer } = LayersControl;
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -712,43 +709,29 @@ const MONTH_NAMES = [
 
 function generateMonthlyDistribution(totalRainfall, lat, lng) {
   const seed = Math.abs(Math.sin(lat * lng) * 10000) % 1;
-  
   const patterns = [
     [0.01, 0.02, 0.04, 0.07, 0.13, 0.22, 0.25, 0.16, 0.07, 0.02, 0.01, 0.00],
     [0.03, 0.04, 0.06, 0.09, 0.12, 0.16, 0.18, 0.14, 0.10, 0.05, 0.02, 0.01],
     [0.02, 0.03, 0.05, 0.08, 0.11, 0.15, 0.19, 0.21, 0.11, 0.03, 0.01, 0.01],
   ];
-  
   const patternIndex = Math.floor(seed * 3);
   const basePattern = patterns[patternIndex];
-  
   const variance = 0.15;
   const monthlyWeights = basePattern.map(weight => {
     const randomFactor = 1 + (Math.random() - 0.5) * variance;
     return Math.max(0, weight * randomFactor);
   });
-  
   const sum = monthlyWeights.reduce((a, b) => a + b, 0);
   const normalizedWeights = monthlyWeights.map(w => w / sum);
-  
   return normalizedWeights.map(weight => totalRainfall * weight);
 }
 
 function getPolygonCentroid(geometry) {
   if (!geometry || !geometry.coordinates) return null;
-
   let coords = geometry.coordinates;
-  
-  if (geometry.type === "MultiPolygon") {
-    coords = coords[0];
-  }
-  
+  if (geometry.type === "MultiPolygon") coords = coords[0];
   const ring = coords[0];
-  
-  let area = 0;
-  let cx = 0;
-  let cy = 0;
-
+  let area = 0, cx = 0, cy = 0;
   for (let i = 0; i < ring.length - 1; i++) {
     const [x0, y0] = ring[i];
     const [x1, y1] = ring[i + 1];
@@ -757,11 +740,9 @@ function getPolygonCentroid(geometry) {
     cx += (x0 + x1) * a;
     cy += (y0 + y1) * a;
   }
-
   area *= 0.5;
   cx = cx / (6 * area);
   cy = cy / (6 * area);
-
   return [cy, cx];
 }
 
@@ -770,44 +751,30 @@ function MapLabels({ catchmentData, outletData }) {
   const [zoom, setZoom] = useState(map.getZoom());
 
   useEffect(() => {
-    const handleZoom = () => {
-      setZoom(map.getZoom());
-    };
-
+    const handleZoom = () => setZoom(map.getZoom());
     map.on('zoom', handleZoom);
-    return () => {
-      map.off('zoom', handleZoom);
-    };
+    return () => map.off('zoom', handleZoom);
   }, [map]);
 
   useEffect(() => {
     map.eachLayer((layer) => {
-      if (layer instanceof L.Marker && layer.options.isLabel) {
-        map.removeLayer(layer);
-      }
+      if (layer instanceof L.Marker && layer.options.isLabel) map.removeLayer(layer);
     });
 
     if (catchmentData && catchmentData.features && catchmentData.features[0]) {
       const feature = catchmentData.features[0];
-      
       const centroid = getPolygonCentroid(feature.geometry);
-      
       if (centroid) {
         const bounds = L.geoJSON(feature).getBounds();
         const nePx = map.latLngToContainerPoint(bounds.getNorthEast());
         const swPx = map.latLngToContainerPoint(bounds.getSouthWest());
-        
         const widthPx = Math.abs(nePx.x - swPx.x);
         const heightPx = Math.abs(nePx.y - swPx.y);
-        
         const targetWidth = widthPx * 0.85;
         const textLength = "KARNALI BASIN".length;
-        
         let fontSize = Math.floor(targetWidth / (textLength * 0.65));
-        
         const maxHeightSize = Math.floor(heightPx * 0.35);
         fontSize = Math.min(fontSize, maxHeightSize);
-        
         fontSize = Math.max(10, Math.min(fontSize, 80));
 
         const basinIcon = L.divIcon({
@@ -816,12 +783,7 @@ function MapLabels({ catchmentData, outletData }) {
             font-size: ${fontSize}px;
             font-weight: 800;
             color: #FCD34D;
-            text-shadow: 
-              -2px -2px 0 #000,  
-              2px -2px 0 #000,
-              -2px 2px 0 #000,
-              2px 2px 0 #000,
-              0px 0px 10px rgba(0,0,0,0.9);
+            text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0px 0px 10px rgba(0,0,0,0.9);
             white-space: nowrap;
             pointer-events: none;
             font-family: 'Arial Black', sans-serif;
@@ -834,12 +796,7 @@ function MapLabels({ catchmentData, outletData }) {
           iconSize: [0, 0],
           iconAnchor: [0, 0],
         });
-
-        const basinLabel = L.marker(centroid, { 
-          icon: basinIcon, 
-          isLabel: true,
-          interactive: false,
-        });
+        const basinLabel = L.marker(centroid, { icon: basinIcon, isLabel: true, interactive: false });
         basinLabel.addTo(map);
       }
     }
@@ -847,21 +804,14 @@ function MapLabels({ catchmentData, outletData }) {
     if (outletData && outletData.features && outletData.features[0]) {
       const coords = outletData.features[0].geometry.coordinates;
       const latlng = L.latLng(coords[1], coords[0]);
-
       const outletFontSize = Math.max(12, Math.min(28, zoom * 3));
-
       const outletIcon = L.divIcon({
         className: 'outlet-label',
         html: `<div style="
           font-size: ${outletFontSize}px;
           font-weight: 800;
           color: #FCD34D;
-          text-shadow: 
-            -2px -2px 0 #000,  
-            2px -2px 0 #000,
-            -2px 2px 0 #000,
-            2px 2px 0 #000,
-            0px 0px 6px rgba(0,0,0,0.8);
+          text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0px 0px 6px rgba(0,0,0,0.8);
           white-space: nowrap;
           pointer-events: none;
           font-family: 'Arial Black', sans-serif;
@@ -870,12 +820,7 @@ function MapLabels({ catchmentData, outletData }) {
         iconSize: [0, 0],
         iconAnchor: [outletFontSize * 3.5, -15],
       });
-
-      const outletLabel = L.marker(latlng, { 
-        icon: outletIcon, 
-        isLabel: true,
-        interactive: false,
-      });
+      const outletLabel = L.marker(latlng, { icon: outletIcon, isLabel: true, interactive: false });
       outletLabel.addTo(map);
     }
   }, [map, zoom, catchmentData, outletData]);
@@ -890,20 +835,14 @@ function ChirpsPointMarker({ point, onViewChart }) {
   const totalRainfall = Number(point.m2025) || 0;
   const lat = point.lat;
   const lng = point.lng;
-  
+
   const monthlyRainfallData = useMemo(
     () => generateMonthlyDistribution(totalRainfall, lat, lng),
     [totalRainfall, lat, lng]
   );
 
-  const handleMonthChange = (e) => {
-    setSelectedMonth(parseInt(e.target.value));
-  };
-
-  const getCurrentRainfall = () => {
-    return monthlyRainfallData[selectedMonth] || 0;
-  };
-
+  const handleMonthChange = (e) => setSelectedMonth(parseInt(e.target.value));
+  const getCurrentRainfall = () => monthlyRainfallData[selectedMonth] || 0;
   const currentRainfall = getCurrentRainfall();
 
   if (!lat || !lng) return null;
@@ -911,175 +850,52 @@ function ChirpsPointMarker({ point, onViewChart }) {
   const handleViewChart = (e) => {
     e.preventDefault();
     e.stopPropagation();
-
     const monthlyData = MONTH_NAMES.map((monthName, idx) => ({
       time: idx + 1,
       month: monthName,
       rainfall: monthlyRainfallData[idx],
       runoff: 0,
     }));
-
     if (onViewChart) {
-      onViewChart({
-        lat,
-        lng,
-        monthIndex: selectedMonth,
-        monthName: MONTH_NAMES[selectedMonth],
-        rainfall: currentRainfall,
-        totalRainfall,
-        allMonthsData: point,
-        monthlyData,
-        isIndividualPoint: true,
-      });
+      onViewChart({ lat, lng, monthIndex: selectedMonth, monthName: MONTH_NAMES[selectedMonth], rainfall: currentRainfall, totalRainfall, allMonthsData: point, monthlyData, isIndividualPoint: true });
     }
-
-    setTimeout(() => {
-      if (popupRef.current) {
-        popupRef.current._close();
-      }
-    }, 300);
+    setTimeout(() => { if (popupRef.current) popupRef.current._close(); }, 300);
   };
 
   return (
-   <CircleMarker
-  center={[lat, lng]}
-  radius={5}
-  pathOptions={{
-    color: "#1e40af",
-    fillColor: "#3b82f6",
-    fillOpacity: 0.7,
-    weight: 1.5,
-  }}
-  point={point}  // ADD THIS LINE - attaches point data to marker
->
+    <CircleMarker
+      center={[lat, lng]}
+      radius={5}
+      pathOptions={{ color: "#1e40af", fillColor: "#3b82f6", fillOpacity: 0.7, weight: 1.5 }}
+      point={point}
+    >
       <Tooltip direction="top" offset={[0, -5]} opacity={0.95} permanent={false}>
         <div style={{ fontSize: "12px", fontWeight: "600", color: "#1e293b" }}>
           {currentRainfall.toFixed(2)} mm
         </div>
       </Tooltip>
 
-      <Popup 
-        ref={popupRef} 
-        maxWidth={200}
-        minWidth={180}
-        className="chirps-popup" 
-        closeButton={true}
-        autoPan={true}
-        autoPanPadding={[50, 50]}
-        keepInView={true}
-      >
+      <Popup ref={popupRef} maxWidth={200} minWidth={180} className="chirps-popup" closeButton={true} autoPan={true} autoPanPadding={[50, 50]} keepInView={true}>
         <div style={{ minWidth: "180px", fontFamily: "system-ui, sans-serif" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              marginBottom: "8px",
-              paddingBottom: "6px",
-              borderBottom: "2px solid #e2e8f0",
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "8px", paddingBottom: "6px", borderBottom: "2px solid #e2e8f0" }}>
             <span style={{ fontSize: "16px" }}>🌧️</span>
-            <h4 style={{ margin: 0, fontSize: "12px", fontWeight: "700", color: "#1e293b" }}>
-              CHIRPS Rainfall
-            </h4>
+            <h4 style={{ margin: 0, fontSize: "12px", fontWeight: "700", color: "#1e293b" }}>CHIRPS Rainfall</h4>
           </div>
-
           <div style={{ marginBottom: "8px" }}>
-            <label
-              htmlFor={`month-select-${lat}-${lng}`}
-              style={{
-                fontSize: "11px",
-                fontWeight: "600",
-                display: "block",
-                marginBottom: "4px",
-                color: "#475569",
-              }}
-            >
-              Month:
-            </label>
-            <select
-              id={`month-select-${lat}-${lng}`}
-              value={selectedMonth}
-              onChange={handleMonthChange}
-              style={{
-                width: "100%",
-                padding: "6px 8px",
-                fontSize: "12px",
-                border: "2px solid #cbd5e1",
-                borderRadius: "4px",
-                backgroundColor: "#ffffff",
-                color: "#1e293b",
-                cursor: "pointer",
-                fontWeight: "500",
-                outline: "none",
-              }}
-            >
-              {MONTH_NAMES.map((month, idx) => (
-                <option key={idx} value={idx} style={{ color: "#1e293b" }}>
-                  {month}
-                </option>
-              ))}
+            <label htmlFor={`month-select-${lat}-${lng}`} style={{ fontSize: "11px", fontWeight: "600", display: "block", marginBottom: "4px", color: "#475569" }}>Month:</label>
+            <select id={`month-select-${lat}-${lng}`} value={selectedMonth} onChange={handleMonthChange} style={{ width: "100%", padding: "6px 8px", fontSize: "12px", border: "2px solid #cbd5e1", borderRadius: "4px", backgroundColor: "#ffffff", color: "#1e293b", cursor: "pointer", fontWeight: "500", outline: "none" }}>
+              {MONTH_NAMES.map((month, idx) => (<option key={idx} value={idx} style={{ color: "#1e293b" }}>{month}</option>))}
             </select>
           </div>
-
-          <div
-            style={{
-              padding: "8px",
-              backgroundColor: "#eff6ff",
-              borderRadius: "4px",
-              border: "1px solid #bfdbfe",
-              textAlign: "center",
-              marginBottom: "8px",
-            }}
-          >
-            <div style={{ fontSize: "10px", color: "#64748b", marginBottom: "2px", fontWeight: "500" }}>
-              {MONTH_NAMES[selectedMonth]} 2025
-            </div>
-            <div style={{ fontSize: "24px", fontWeight: "700", color: "#2563eb", lineHeight: "1" }}>
-              {currentRainfall.toFixed(2)}
-            </div>
-            <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px", fontWeight: "600" }}>
-              mm
-            </div>
+          <div style={{ padding: "8px", backgroundColor: "#eff6ff", borderRadius: "4px", border: "1px solid #bfdbfe", textAlign: "center", marginBottom: "8px" }}>
+            <div style={{ fontSize: "10px", color: "#64748b", marginBottom: "2px", fontWeight: "500" }}>{MONTH_NAMES[selectedMonth]} 2025</div>
+            <div style={{ fontSize: "24px", fontWeight: "700", color: "#2563eb", lineHeight: "1" }}>{currentRainfall.toFixed(2)}</div>
+            <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px", fontWeight: "600" }}>mm</div>
           </div>
-
-          <button
-            onClick={handleViewChart}
-            onMouseDown={(e) => e.stopPropagation()}
-            style={{
-              width: "100%",
-              padding: "8px",
-              backgroundColor: "#2563eb",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "11px",
-              fontWeight: "700",
-              transition: "all 0.2s",
-              boxShadow: "0 2px 6px rgba(37, 99, 235, 0.3)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "4px",
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = "#1d4ed8";
-              e.target.style.transform = "translateY(-1px)";
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = "#2563eb";
-              e.target.style.transform = "translateY(0)";
-            }}
-          >
-            <span>📊</span>
-            <span>View Chart</span>
+          <button onClick={handleViewChart} onMouseDown={(e) => e.stopPropagation()} style={{ width: "100%", padding: "8px", backgroundColor: "#2563eb", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "11px", fontWeight: "700", transition: "all 0.2s", boxShadow: "0 2px 6px rgba(37, 99, 235, 0.3)", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }} onMouseEnter={(e) => { e.target.style.backgroundColor = "#1d4ed8"; e.target.style.transform = "translateY(-1px)"; }} onMouseLeave={(e) => { e.target.style.backgroundColor = "#2563eb"; e.target.style.transform = "translateY(0)"; }}>
+            <span>📊</span><span>View Chart</span>
           </button>
-
-          <div style={{ marginTop: "6px", fontSize: "9px", color: "#94a3b8", textAlign: "center" }}>
-            {lat.toFixed(3)}°N, {lng.toFixed(3)}°E
-          </div>
+          <div style={{ marginTop: "6px", fontSize: "9px", color: "#94a3b8", textAlign: "center" }}>{lat.toFixed(3)}°N, {lng.toFixed(3)}°E</div>
         </div>
       </Popup>
     </CircleMarker>
@@ -1089,57 +905,28 @@ function ChirpsPointMarker({ point, onViewChart }) {
 function UploadMarker({ position, pointFileMemory, onDataInputComplete }) {
   const [file, setFile] = useState(null);
   const fileInputRef = useRef(null);
-
   const pointKey = `${position.lat.toFixed(4)},${position.lng.toFixed(4)}`;
   const savedFile = pointFileMemory[pointKey];
 
-  useEffect(() => {
-    if (savedFile) {
-      setFile(savedFile.file);
-    }
-  }, [savedFile]);
+  useEffect(() => { if (savedFile) setFile(savedFile.file); }, [savedFile]);
 
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-    }
-  };
+  const handleFileChange = (e) => { if (e.target.files && e.target.files[0]) setFile(e.target.files[0]); };
 
   const handleLoadData = () => {
-    if (!file) {
-      alert("Please select a CSV file first");
-      return;
-    }
-
+    if (!file) { alert("Please select a CSV file first"); return; }
     Papa.parse(file, {
-      header: true,
-      dynamicTyping: true,
-      skipEmptyLines: true,
+      header: true, dynamicTyping: true, skipEmptyLines: true,
       complete: (results) => {
         if (results.data && results.data.length > 0) {
           const firstRow = results.data[0];
           if (!firstRow.hasOwnProperty("rainfall") || !firstRow.hasOwnProperty("runoff")) {
-            alert("CSV must contain 'rainfall' and 'runoff' columns");
-            return;
+            alert("CSV must contain 'rainfall' and 'runoff' columns"); return;
           }
-
-          const processedData = results.data.map((row, idx) => ({
-            time: row.time || idx + 1,
-            rainfall: Number(row.rainfall) || 0,
-            runoff: Number(row.runoff) || 0,
-          }));
-
-          onDataInputComplete({
-            point: position,
-            csvData: processedData,
-            file: file,
-            fileName: file.name,
-          });
+          const processedData = results.data.map((row, idx) => ({ time: row.time || idx + 1, rainfall: Number(row.rainfall) || 0, runoff: Number(row.runoff) || 0 }));
+          onDataInputComplete({ point: position, csvData: processedData, file: file, fileName: file.name });
         }
       },
-      error: (error) => {
-        alert("Error parsing CSV: " + error.message);
-      },
+      error: (error) => { alert("Error parsing CSV: " + error.message); },
     });
   };
 
@@ -1147,208 +934,257 @@ function UploadMarker({ position, pointFileMemory, onDataInputComplete }) {
     <Marker position={position} icon={uploadIcon}>
       <Popup maxWidth={300} className="upload-popup">
         <div style={{ minWidth: "260px", fontFamily: "system-ui, sans-serif" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              marginBottom: "16px",
-              paddingBottom: "12px",
-              borderBottom: "2px solid #bfdbfe",
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px", paddingBottom: "12px", borderBottom: "2px solid #bfdbfe" }}>
             <span style={{ fontSize: "20px" }}>📂</span>
-            <h4 style={{ margin: 0, fontSize: "16px", fontWeight: "700", color: "#1e40af" }}>
-              Upload Rainfall-Runoff Data
-            </h4>
+            <h4 style={{ margin: 0, fontSize: "16px", fontWeight: "700", color: "#1e40af" }}>Upload Rainfall-Runoff Data</h4>
           </div>
-
-          <div
-            style={{
-              fontSize: "12px",
-              marginBottom: "14px",
-              color: "#64748b",
-              backgroundColor: "#f8fafc",
-              padding: "10px",
-              borderRadius: "6px",
-            }}
-          >
-            <strong>Location:</strong><br />
-            {position.lat.toFixed(4)}°N, {position.lng.toFixed(4)}°E
+          <div style={{ fontSize: "12px", marginBottom: "14px", color: "#64748b", backgroundColor: "#f8fafc", padding: "10px", borderRadius: "6px" }}>
+            <strong>Location:</strong><br />{position.lat.toFixed(4)}°N, {position.lng.toFixed(4)}°E
           </div>
-
           <div style={{ marginBottom: "14px" }}>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              onChange={handleFileChange}
-              style={{
-                fontSize: "12px",
-                width: "100%",
-                padding: "8px",
-                border: "2px dashed #cbd5e1",
-                borderRadius: "6px",
-                cursor: "pointer",
-              }}
-            />
+            <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileChange} style={{ fontSize: "12px", width: "100%", padding: "8px", border: "2px dashed #cbd5e1", borderRadius: "6px", cursor: "pointer" }} />
           </div>
-
           {file && (
-            <div
-              style={{
-                fontSize: "12px",
-                color: "#15803d",
-                marginBottom: "12px",
-                padding: "8px 12px",
-                backgroundColor: "#f0fdf4",
-                borderRadius: "6px",
-                border: "1px solid #bbf7d0",
-              }}
-            >
+            <div style={{ fontSize: "12px", color: "#15803d", marginBottom: "12px", padding: "8px 12px", backgroundColor: "#f0fdf4", borderRadius: "6px", border: "1px solid #bbf7d0" }}>
               ✓ <strong>{file.name}</strong>
             </div>
           )}
-
-          <button
-            onClick={handleLoadData}
-            style={{
-              width: "100%",
-              padding: "12px",
-              backgroundColor: "#2563eb",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: "700",
-              transition: "all 0.2s",
-              boxShadow: "0 2px 8px rgba(37, 99, 235, 0.3)",
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = "#1d4ed8";
-              e.target.style.transform = "translateY(-1px)";
-              e.target.style.boxShadow = "0 4px 12px rgba(37, 99, 235, 0.4)";
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = "#2563eb";
-              e.target.style.transform = "translateY(0)";
-              e.target.style.boxShadow = "0 2px 8px rgba(37, 99, 235, 0.3)";
-            }}
-          >
+          <button onClick={handleLoadData} style={{ width: "100%", padding: "12px", backgroundColor: "#2563eb", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "14px", fontWeight: "700", transition: "all 0.2s", boxShadow: "0 2px 8px rgba(37, 99, 235, 0.3)" }}
+            onMouseEnter={(e) => { e.target.style.backgroundColor = "#1d4ed8"; e.target.style.transform = "translateY(-1px)"; e.target.style.boxShadow = "0 4px 12px rgba(37, 99, 235, 0.4)"; }}
+            onMouseLeave={(e) => { e.target.style.backgroundColor = "#2563eb"; e.target.style.transform = "translateY(0)"; e.target.style.boxShadow = "0 2px 8px rgba(37, 99, 235, 0.3)"; }}>
             Load Data & Visualize
           </button>
-
-          <div style={{ fontSize: "10px", color: "#94a3b8", marginTop: "10px", textAlign: "center" }}>
-            CSV must have 'rainfall' and 'runoff' columns
-          </div>
+          <div style={{ fontSize: "10px", color: "#94a3b8", marginTop: "10px", textAlign: "center" }}>CSV must have 'rainfall' and 'runoff' columns</div>
         </div>
       </Popup>
     </Marker>
   );
 }
 
+/* ── Basemap switcher (inside MapContainer) ── */
+function BasemapLayer({ activeBasemap }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const urls = {
+      hybrid:    { url: "https://{s}.google.com/vt/lyrs=y@221097413,transit&x={x}&y={y}&z={z}&hl=en&gl=IN", subdomains: ["mt0","mt1","mt2","mt3"], attribution: "&copy; Google Maps" },
+      satellite: { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", subdomains: [], attribution: "&copy; Esri" },
+      terrain:   { url: "https://{s}.google.com/vt/lyrs=p@221097413,transit&x={x}&y={y}&z={z}&hl=en&gl=IN", subdomains: ["mt0","mt1","mt2","mt3"], attribution: "&copy; Google Maps" },
+    };
+
+    // Use selected basemap or fall back to hybrid as default
+    const key = activeBasemap && urls[activeBasemap] ? activeBasemap : "hybrid";
+    const cfg = urls[key];
+
+    // Remove every existing tile layer from the map before adding the new one
+    map.eachLayer((layer) => {
+      if (layer instanceof L.TileLayer) {
+        map.removeLayer(layer);
+      }
+    });
+
+    // Add the selected basemap tile layer
+    const tl = L.tileLayer(cfg.url, {
+      subdomains: cfg.subdomains,
+      attribution: cfg.attribution,
+      maxZoom: 18,
+      _isBasemap: true,
+    });
+    tl.addTo(map);
+    tl.bringToBack();
+  }, [activeBasemap, map]);
+
+  return null;
+}
+
+/* ── Region zoom (inside MapContainer) ── */
+const REGION_VIEWS = {
+  "all-india": { center: [23.0, 80.0], zoom: 4 },
+  "karnali":   { center: [29.3, 82.2], zoom: 7 },
+  "global":    { center: [20.0, 0.0],  zoom: 2 },
+};
+
+function RegionZoom({ activeRegion }) {
+  const map = useMap();
+  const prevRegion = useRef(null);
+  useEffect(() => {
+    if (!activeRegion || activeRegion === prevRegion.current) return;
+    prevRegion.current = activeRegion;
+    const view = REGION_VIEWS[activeRegion];
+    if (view) map.flyTo(view.center, view.zoom, { duration: 1.2 });
+  }, [activeRegion, map]);
+  return null;
+}
+
+/* ── Professional map controls — top-right column ── */
 function MapControls({ onCalculateAverage }) {
-  const handleRefresh = () => {
-    window.location.reload();
+  const map = useMap();
+
+  const handleZoomIn  = () => map.zoomIn();
+  const handleZoomOut = () => map.zoomOut();
+  const handleRefresh = () => window.location.reload();
+
+  /* Base style for all icon-only square buttons */
+  const iconBtn = {
+    width: "36px",
+    height: "36px",
+    padding: "0",
+    background: "rgba(15, 23, 42, 0.82)",
+    backdropFilter: "blur(10px)",
+    WebkitBackdropFilter: "blur(10px)",
+    border: "none",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "#e2e8f0",
+    transition: "background 0.18s, color 0.18s",
+    lineHeight: "1",
+    outline: "none",
+    flexShrink: 0,
+  };
+
+  /* Shared card wrapper — glass dark look matching the sidebar */
+  const cardStyle = {
+    background: "rgba(15, 23, 42, 0.82)",
+    backdropFilter: "blur(10px)",
+    WebkitBackdropFilter: "blur(10px)",
+    border: "1px solid rgba(99, 179, 237, 0.22)",
+    borderRadius: "10px",
+    boxShadow: "0 4px 16px rgba(0,0,0,0.45)",
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
   };
 
   return (
-    <>
-      <div
-        style={{
-          position: "absolute",
-          top: "80px",
-          right: "10px",
-          zIndex: 1000,
-        }}
-      >
+    <div
+      style={{
+        position: "absolute",
+        top: "12px",
+        right: "12px",
+        zIndex: 1000,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "stretch",
+        gap: "8px",
+      }}
+    >
+      {/* ── Zoom +/− grouped card ── */}
+      <div style={cardStyle}>
+        {/* Zoom In */}
         <button
-          onClick={handleRefresh}
-          style={{
-            width: "34px",
-            height: "34px",
-            padding: "0",
-            backgroundColor: "#ffffff",
-            border: "2px solid rgba(0,0,0,0.2)",
-            borderRadius: "4px",
-            cursor: "pointer",
-            boxShadow: "0 1px 5px rgba(0,0,0,0.15)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition: "all 0.2s ease",
-          }}
+          onClick={handleZoomIn}
+          style={iconBtn}
           onMouseEnter={(e) => {
-            e.target.style.backgroundColor = "#f9fafb";
+            e.currentTarget.style.background = "rgba(96, 165, 250, 0.25)";
+            e.currentTarget.style.color = "#93c5fd";
           }}
           onMouseLeave={(e) => {
-            e.target.style.backgroundColor = "#ffffff";
+            e.currentTarget.style.background = "rgba(15, 23, 42, 0.82)";
+            e.currentTarget.style.color = "#e2e8f0";
           }}
-          title="Refresh Dashboard"
+          title="Zoom in"
+          aria-label="Zoom in"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="2.5">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+        {/* Divider */}
+        <div style={{ height: "1px", background: "rgba(99, 179, 237, 0.18)", margin: "0" }} />
+        {/* Zoom Out */}
+        <button
+          onClick={handleZoomOut}
+          style={iconBtn}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(96, 165, 250, 0.25)";
+            e.currentTarget.style.color = "#93c5fd";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(15, 23, 42, 0.82)";
+            e.currentTarget.style.color = "#e2e8f0";
+          }}
+          title="Zoom out"
+          aria-label="Zoom out"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+      </div>
+
+      {/* ── Refresh card ── */}
+      <div style={cardStyle}>
+        <button
+          onClick={handleRefresh}
+          style={iconBtn}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(96, 165, 250, 0.25)";
+            e.currentTarget.style.color = "#93c5fd";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(15, 23, 42, 0.82)";
+            e.currentTarget.style.color = "#e2e8f0";
+          }}
+          title="Refresh dashboard"
+          aria-label="Refresh"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
           </svg>
         </button>
       </div>
 
-      <div
+      {/* ── Rainfall Data (GPM) pill ── */}
+      <button
+        onClick={onCalculateAverage}
         style={{
-          position: "absolute",
-          top: "126px",
-          right: "10px",
-          zIndex: 1000,
+          padding: "9px 14px",
+          background: "rgba(15, 23, 42, 0.82)",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
+          border: "1px solid rgba(99, 179, 237, 0.22)",
+          borderRadius: "10px",
+          cursor: "pointer",
+          fontSize: "12px",
+          fontWeight: "700",
+          color: "#cbd5e1",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.45)",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          whiteSpace: "nowrap",
+          transition: "background 0.18s, color 0.18s, border-color 0.18s",
+          fontFamily: "system-ui, -apple-system, sans-serif",
+          letterSpacing: "0.3px",
+          outline: "none",
         }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "rgba(96, 165, 250, 0.18)";
+          e.currentTarget.style.color = "#93c5fd";
+          e.currentTarget.style.borderColor = "rgba(96, 165, 250, 0.55)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "rgba(15, 23, 42, 0.82)";
+          e.currentTarget.style.color = "#cbd5e1";
+          e.currentTarget.style.borderColor = "rgba(99, 179, 237, 0.22)";
+        }}
+        title="Calculate average polygon rainfall (GPM)"
       >
-        <button
-          onClick={onCalculateAverage}
-          style={{
-            padding: "12px 20px",
-            backgroundColor: "#ffffff",
-            border: "2px solid #e2e8f0",
-            borderRadius: "10px",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: "600",
-            color: "#334155",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            transition: "all 0.3s ease",
-            fontFamily: "system-ui, -apple-system, sans-serif",
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.backgroundColor = "#eff6ff";
-            e.target.style.borderColor = "#3b82f6";
-            e.target.style.color = "#1e40af";
-            e.target.style.transform = "translateY(-2px)";
-            e.target.style.boxShadow = "0 6px 16px rgba(59,130,246,0.2)";
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.backgroundColor = "#ffffff";
-            e.target.style.borderColor = "#e2e8f0";
-            e.target.style.color = "#334155";
-            e.target.style.transform = "translateY(0)";
-            e.target.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)";
-          }}
-          title="Calculate Average Rainfall"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <rect x="3" y="3" width="7" height="7"/>
-            <rect x="14" y="3" width="7" height="7"/>
-            <rect x="14" y="14" width="7" height="7"/>
-            <rect x="3" y="14" width="7" height="7"/>
-          </svg>
-          <span>Rainfall Data (GPM)</span>
-        </button>
-      </div>
-    </>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+          <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+        </svg>
+        Rainfall Data (GPM)
+      </button>
+    </div>
   );
 }
 
-export default function MapView({ onDataInputComplete, pointFileMemory }) {
+export default function MapView({ onDataInputComplete, pointFileMemory, activeBasemap, activeRegion, activeLayers }) {
   const [catchmentData, setCatchmentData] = useState(null);
   const [riverData, setRiverData] = useState(null);
   const [outletData, setOutletData] = useState(null);
@@ -1356,54 +1192,28 @@ export default function MapView({ onDataInputComplete, pointFileMemory }) {
   const [uploadMarker, setUploadMarker] = useState(null);
 
   useEffect(() => {
-    fetch("/geojson/catchment.geojson")
-      .then((res) => res.json())
-      .then(setCatchmentData)
-      .catch(console.error);
-
-    fetch("/geojson/river.geojson")
-      .then((res) => res.json())
-      .then(setRiverData)
-      .catch(console.error);
-
-    fetch("/geojson/outlet.geojson")
-      .then((res) => res.json())
-      .then((data) => {
-        setOutletData(data);
-        
-        if (data && data.features && data.features[0]) {
-          const coords = data.features[0].geometry.coordinates;
-          setUploadMarker({ lat: coords[1], lng: coords[0] });
-        }
-      })
-      .catch(console.error);
+    fetch("/geojson/catchment.geojson").then(r => r.json()).then(setCatchmentData).catch(console.error);
+    fetch("/geojson/river.geojson").then(r => r.json()).then(setRiverData).catch(console.error);
+    fetch("/geojson/outlet.geojson").then(r => r.json()).then((data) => {
+      setOutletData(data);
+      if (data && data.features && data.features[0]) {
+        const coords = data.features[0].geometry.coordinates;
+        setUploadMarker({ lat: coords[1], lng: coords[0] });
+      }
+    }).catch(console.error);
   }, []);
 
   useEffect(() => {
-    fetch("/data/chirps_2025_points.csv")
-      .then((response) => response.text())
-      .then((csvText) => {
-        Papa.parse(csvText, {
-          header: true,
-          dynamicTyping: true,
-          skipEmptyLines: true,
-          complete: (results) => {
-            console.log("✅ CHIRPS points loaded:", results.data.length);
-            setChirpsPoints(results.data);
-          },
-          error: (error) => {
-            console.error("Error loading CHIRPS CSV:", error);
-          },
-        });
-      })
-      .catch((error) => {
-        console.error("Error fetching CHIRPS CSV:", error);
+    fetch("/data/chirps_2025_points.csv").then(r => r.text()).then(csvText => {
+      Papa.parse(csvText, {
+        header: true, dynamicTyping: true, skipEmptyLines: true,
+        complete: (results) => { console.log("✅ CHIRPS points loaded:", results.data.length); setChirpsPoints(results.data); },
+        error: (error) => { console.error("Error loading CHIRPS CSV:", error); },
       });
+    }).catch(console.error);
   }, []);
 
-  const handleOutletClick = (e) => {
-    setUploadMarker(e.latlng);
-  };
+  const handleOutletClick = (e) => setUploadMarker(e.latlng);
 
   const handleChirpsViewChart = (data) => {
     if (onDataInputComplete) {
@@ -1421,137 +1231,38 @@ export default function MapView({ onDataInputComplete, pointFileMemory }) {
 
   const handleCalculateAverage = () => {
     if (chirpsPoints && chirpsPoints.length > 0) {
-      const monthlyTotals = Array(12).fill(0);
-      
-      chirpsPoints.forEach(point => {
-        const totalRainfall = Number(point.m2025) || 0;
-        const monthlyData = generateMonthlyDistribution(totalRainfall, point.lat, point.lng);
-        
-        monthlyData.forEach((value, idx) => {
-          monthlyTotals[idx] += value;
-        });
-      });
-
-      const monthlyAverages = monthlyTotals.map(total => total / chirpsPoints.length);
-      
-      const realisticMonthlyPattern = [
-        0.015, 0.020, 0.035, 0.065, 0.095, 0.180,
-        0.260, 0.210, 0.095, 0.020, 0.003, 0.002,
-      ];
-      
+      const realisticMonthlyPattern = [0.015,0.020,0.035,0.065,0.095,0.180,0.260,0.210,0.095,0.020,0.003,0.002];
       const totalAverage = chirpsPoints.reduce((sum, point) => sum + (Number(point.m2025) || 0), 0) / chirpsPoints.length;
-      
-      const adjustedAverages = realisticMonthlyPattern.map(percent => {
-        const variation = 0.85 + Math.random() * 0.3;
-        return totalAverage * percent * variation;
-      });
-      
+      const adjustedAverages = realisticMonthlyPattern.map(percent => totalAverage * percent * (0.85 + Math.random() * 0.3));
       const sum = adjustedAverages.reduce((a, b) => a + b, 0);
       const normalized = adjustedAverages.map(val => (val / sum) * totalAverage);
-
-      const averageMonthlyData = MONTH_NAMES.map((monthName, idx) => ({
-        time: idx + 1,
-        month: monthName,
-        rainfall: normalized[idx],
-        runoff: 0,
-      }));
-
+      const averageMonthlyData = MONTH_NAMES.map((monthName, idx) => ({ time: idx + 1, month: monthName, rainfall: normalized[idx], runoff: 0 }));
       if (onDataInputComplete) {
-        onDataInputComplete({
-          point: { lat: 0, lng: 0 },
-          csvData: averageMonthlyData,
-          file: null,
-          fileName: "Polygon_Average_Rainfall",
-          isChirpsData: true,
-          isPolygonAverage: true,
-          averageValue: totalAverage,
-        });
+        onDataInputComplete({ point: { lat: 0, lng: 0 }, csvData: averageMonthlyData, file: null, fileName: "Polygon_Average_Rainfall", isChirpsData: true, isPolygonAverage: true, averageValue: totalAverage });
       }
     }
   };
 
-  // FIXED: Custom cluster icon with TOTAL RAINFALL calculation
   const createClusterCustomIcon = (cluster) => {
     const markers = cluster.getAllChildMarkers();
     const count = markers.length;
-    
-    // CALCULATE TOTAL RAINFALL for this cluster
     let totalRainfall = 0;
     markers.forEach(marker => {
       const point = marker.options.point;
-      if (point && point.m2025) {
-        totalRainfall += Number(point.m2025) || 0;
-      }
+      if (point && point.m2025) totalRainfall += Number(point.m2025) || 0;
     });
-    
     let size = 'small';
     if (count >= 100) size = 'large';
     else if (count >= 50) size = 'medium';
-    
-    const sizeMap = {
-      small: 35,
-      medium: 45,
-      large: 55
-    };
-    
-    const colorMap = {
-      small: '#3b82f6',
-      medium: '#2563eb',
-      large: '#1e40af'
-    };
-
+    const sizeMap = { small: 35, medium: 45, large: 55 };
+    const colorMap = { small: '#3b82f6', medium: '#2563eb', large: '#1e40af' };
     return L.divIcon({
-      html: `<div 
-        class="cluster-marker" 
-        data-tooltip="${totalRainfall.toFixed(2)} mm total"
-        style="
-          background: ${colorMap[size]};
-          width: ${sizeMap[size]}px;
-          height: ${sizeMap[size]}px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-weight: 700;
-          font-size: ${size === 'large' ? '15px' : size === 'medium' ? '13px' : '11px'};
-          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
-          border: 3px solid white;
-          position: relative;
-          cursor: pointer;
-        "
-      >
+      html: `<div class="cluster-marker" data-tooltip="${totalRainfall.toFixed(2)} mm total" style="background:${colorMap[size]};width:${sizeMap[size]}px;height:${sizeMap[size]}px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:${size==='large'?'15px':size==='medium'?'13px':'11px'};box-shadow:0 4px 12px rgba(37,99,235,0.4);border:3px solid white;position:relative;cursor:pointer;">
         ${count}
-        <div class="cluster-tooltip" style="
-          position: absolute;
-          bottom: 100%;
-          left: 50%;
-          transform: translateX(-50%) translateY(-8px);
-          background: rgba(30, 41, 59, 0.95);
-          color: white;
-          padding: 8px 12px;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 600;
-          white-space: nowrap;
-          pointer-events: none;
-          opacity: 0;
-          transition: opacity 0.2s;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        ">
-          <div style="margin-bottom: 2px;">${count} points</div>
-          <div style="color: #60a5fa;">Total: ${totalRainfall.toFixed(2)} mm</div>
-          <div style="
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 6px solid transparent;
-            border-right: 6px solid transparent;
-            border-top: 6px solid rgba(30, 41, 59, 0.95);
-          "></div>
+        <div class="cluster-tooltip" style="position:absolute;bottom:100%;left:50%;transform:translateX(-50%) translateY(-8px);background:rgba(30,41,59,0.95);color:white;padding:8px 12px;border-radius:6px;font-size:12px;font-weight:600;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity 0.2s;box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+          <div style="margin-bottom:2px;">${count} points</div>
+          <div style="color:#60a5fa;">Total: ${totalRainfall.toFixed(2)} mm</div>
+          <div style="position:absolute;top:100%;left:50%;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid rgba(30,41,59,0.95);"></div>
         </div>
       </div>`,
       className: 'custom-cluster-icon',
@@ -1568,120 +1279,65 @@ export default function MapView({ onDataInputComplete, pointFileMemory }) {
         maxZoom={18}
         style={{ height: "100%", width: "100%" }}
         preferCanvas={true}
-        zoomControl={true}
+        zoomControl={false}
       >
-        <LayersControl position="topright">
-          <BaseLayer checked name="Hybrid (Default)">
-            <TileLayer
-              url="https://{s}.google.com/vt/lyrs=y@221097413,transit&x={x}&y={y}&z={z}&hl=en&gl=IN"
-              subdomains={["mt0", "mt1", "mt2", "mt3"]}
-              attribution="&copy; Google Maps"
-            />
-          </BaseLayer>
+        {/* ── BasemapLayer — handles all basemap switching including default hybrid ── */}
+        <BasemapLayer activeBasemap={activeBasemap} />
 
-          <BaseLayer name="Satellite">
-            <TileLayer
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-              attribution="&copy; Esri"
-            />
-          </BaseLayer>
+        {/* ── Region zoom ── */}
+        <RegionZoom activeRegion={activeRegion} />
 
-          <BaseLayer name="Terrain">
-            <TileLayer
-              url="https://{s}.google.com/vt/lyrs=p@221097413,transit&x={x}&y={y}&z={z}&hl=en&gl=IN"
-              subdomains={["mt0", "mt1", "mt2", "mt3"]}
-              attribution="&copy; Google Maps"
-            />
-          </BaseLayer>
-        </LayersControl>
-
+        {/* ── Map labels ── */}
         <MapLabels catchmentData={catchmentData} outletData={outletData} />
 
+        {/* ── Custom controls: zoom +/− at top-right, refresh + GPM below ── */}
         <MapControls onCalculateAverage={handleCalculateAverage} />
 
-        {catchmentData && (
-          <GeoJSON 
-            data={catchmentData} 
-            style={{ 
-              color: "#22c55e", 
-              weight: 4, 
-              fillOpacity: 0.05,
-              fillColor: "#3b82f6"
-            }} 
-          />
+        {/* ── GeoJSON layers (sidebar toggle) ── */}
+        {catchmentData && (!activeLayers || activeLayers.catchment !== false) && (
+          <GeoJSON data={catchmentData} style={{ color: "#22c55e", weight: 4, fillOpacity: 0.05, fillColor: "#3b82f6" }} />
         )}
 
-        {riverData && (
+        {riverData && (!activeLayers || activeLayers.river !== false) && (
           <GeoJSON data={riverData} style={{ color: "#3b82f6", weight: 2.5 }} />
         )}
 
-        {outletData && (
+        {outletData && (!activeLayers || activeLayers.outlet !== false) && (
           <GeoJSON
             data={outletData}
             style={{ color: "#dc2626", weight: 5 }}
-            pointToLayer={(feature, latlng) => {
-              return L.circleMarker(latlng, {
-                radius: 10,
-                fillColor: "#dc2626",
-                color: "#7f1d1d",
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.9,
-              });
-            }}
-            eventHandlers={{
-              click: handleOutletClick,
-            }}
+            pointToLayer={(feature, latlng) =>
+              L.circleMarker(latlng, { radius: 10, fillColor: "#dc2626", color: "#7f1d1d", weight: 2, opacity: 1, fillOpacity: 0.9 })
+            }
+            eventHandlers={{ click: handleOutletClick }}
           />
         )}
 
-        {/* CLUSTERING WITH RAINFALL TOTALS */}
-       // 🔥 ONLY CHANGE: Added jitter to make points look random (NOT grid-like)
+        {/* ── CHIRPS cluster (sidebar toggle) ── */}
+        {(!activeLayers || activeLayers.chirps !== false) && (
+          <MarkerClusterGroup
+            chunkedLoading
+            iconCreateFunction={createClusterCustomIcon}
+            showCoverageOnHover={false}
+            spiderfyOnMaxZoom={true}
+            zoomToBoundsOnClick={true}
+            maxClusterRadius={60}
+          >
+            {chirpsPoints.map((point, idx) => {
+              const jitterFactor = 0.12;
+              const jitteredPoint = {
+                ...point,
+                lat: point.lat + (Math.random() - 0.5) * jitterFactor,
+                lng: point.lng + (Math.random() - 0.5) * jitterFactor,
+              };
+              return <ChirpsPointMarker key={idx} point={jitteredPoint} onViewChart={handleChirpsViewChart} />;
+            })}
+          </MarkerClusterGroup>
+        )}
 
-...
-
-// ⛔ SKIPPING SAME CODE ABOVE (NO CHANGE)
-// ⛔ KEEP EVERYTHING SAME UNTIL THIS PART
-
-{/* CLUSTERING WITH RAINFALL TOTALS */}
-<MarkerClusterGroup
-  chunkedLoading
-  iconCreateFunction={createClusterCustomIcon}
-  showCoverageOnHover={false}
-  spiderfyOnMaxZoom={true}
-  zoomToBoundsOnClick={true}
-  maxClusterRadius={60}
->
-  {chirpsPoints.map((point, idx) => {
-    
-    // 🔥 RANDOM JITTER LOGIC (MAIN FIX)
-    const jitterFactor = 0.12; // best balance (natural look)
-
-    const randomLatOffset = (Math.random() - 0.5) * jitterFactor;
-    const randomLngOffset = (Math.random() - 0.5) * jitterFactor;
-
-    const jitteredPoint = {
-      ...point,
-      lat: point.lat + randomLatOffset,
-      lng: point.lng + randomLngOffset,
-    };
-
-    return (
-      <ChirpsPointMarker 
-        key={idx} 
-        point={jitteredPoint} 
-        onViewChart={handleChirpsViewChart}
-      />
-    );
-  })}
-</MarkerClusterGroup>
-
+        {/* ── Upload marker ── */}
         {uploadMarker && (
-          <UploadMarker
-            position={uploadMarker}
-            pointFileMemory={pointFileMemory}
-            onDataInputComplete={onDataInputComplete}
-          />
+          <UploadMarker position={uploadMarker} pointFileMemory={pointFileMemory} onDataInputComplete={onDataInputComplete} />
         )}
       </MapContainer>
     </div>

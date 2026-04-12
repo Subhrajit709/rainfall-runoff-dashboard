@@ -1,0 +1,196 @@
+/* ======================================================
+   LEFT SIDEBAR — floats over the map (no layout change)
+   ====================================================== */
+
+.left-sidebar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 210px;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  /* Pointer-events: none on the container so the map underneath still receives
+     mouse events; re-enabled on each card so clicks work on the sidebar. */
+  pointer-events: none;
+}
+
+/* ── Glass card ── */
+.sb-card {
+  background: rgba(10, 15, 35, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(99, 179, 237, 0.20);
+  border-radius: 12px;
+  padding: 13px 14px;
+  color: #e2e8f0;
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.45);
+  pointer-events: all;        /* re-enable clicks on the card */
+}
+
+/* ── Card title row ── */
+.sb-card-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: #60a5fa;
+  margin-bottom: 11px;
+}
+
+.sb-card-title svg {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+/* ── Field group ── */
+.sb-field {
+  margin-bottom: 9px;
+}
+
+.sb-label {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 5px;
+}
+
+.sb-select {
+  width: 100%;
+  padding: 7px 26px 7px 10px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(99, 179, 237, 0.22);
+  border-radius: 7px;
+  color: #e2e8f0;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  /* Chevron icon */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.sb-select:hover,
+.sb-select:focus {
+  border-color: rgba(96, 165, 250, 0.55);
+  background-color: rgba(255, 255, 255, 0.11);
+}
+
+.sb-select option {
+  background: #1e293b;
+  color: #e2e8f0;
+}
+
+/* ── Layer chips ── */
+.sb-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sb-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: inherit;
+  border: 1px solid rgba(99, 179, 237, 0.22);
+  background: rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  line-height: 1;
+}
+
+.sb-chip:hover {
+  border-color: rgba(96, 165, 250, 0.45);
+  color: #cbd5e1;
+}
+
+.sb-chip.active {
+  background: rgba(96, 165, 250, 0.18);
+  border-color: rgba(96, 165, 250, 0.60);
+  color: #93c5fd;
+}
+
+.sb-chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Legend ── */
+.sb-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sb-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+.sb-legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sb-legend-bar {
+  margin-top: 10px;
+  height: 7px;
+  border-radius: 4px;
+  background: linear-gradient(to right, #bae6fd, #60a5fa, #3b82f6, #1d4ed8, #1e3a8a);
+}
+
+.sb-legend-ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: #64748b;
+  margin-top: 3px;
+}
+
+/* ── Dataset summary ── */
+.sb-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 11px;
+}
+
+.sb-summary-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.sb-summary-label {
+  color: #94a3b8;
+}
+
+.sb-summary-value {
+  font-weight: 700;
+}

@@ -1,12 +1,56 @@
-import React from "react";
+import { signInWithPopup } from "firebase/auth";
+import { auth, provider } from "../firebase";
+import React, { useState, useRef, useEffect } from "react";
 import "./Header.css";
 
 export default function Header() {
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [userName, setUserName] = useState("User");
+  const [showLoginOptions, setShowLoginOptions] = useState(false); // ✅ NEW
+
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setProfileOpen(false);
+        setShowLoginOptions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  // ✅ REAL GOOGLE LOGIN
+  const handleGoogleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      setLoggedIn(true);
+      setUserName(user.displayName || "User");
+      setProfileOpen(false);
+      setShowLoginOptions(false);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleLogout = () => {
+    setLoggedIn(false);
+    setUserName("User");
+  };
+
   return (
-    <header className="isro-header" role="banner">
+    <header className="isro-header">
       <div className="isro-header__left">
-        <img src="https://www.nrsc.gov.in/nrscnew/assets/img/footer/isro.png" alt="ISRO" className="isro-logo" />
-        <div className="brand-text">
+        <img
+          src="https://www.nrsc.gov.in/nrscnew/assets/img/footer/isro.png"
+          alt="ISRO"
+          className="isro-logo"
+        />
+        <div>
           <div className="brand-main">NRSC | ISRO</div>
           <div className="brand-sub">National Remote Sensing Centre</div>
         </div>
@@ -14,15 +58,128 @@ export default function Header() {
 
       <div className="isro-header__center">
         <h1 className="main-title">Rainfall-Runoff monitoring dashboard</h1>
-        <div className="center-sub">Real-time Data Visualization & Analysis System</div>
+        <div className="center-sub">
+          Real-time Data Visualization & Analysis System
+        </div>
       </div>
 
       <div className="isro-header__right">
-        <div className="status" aria-live="polite">
-          <span className="status-dot" aria-hidden="true"></span>
+        <div className="status">
+          <span className="status-dot" />
           <span className="status-text">System Active</span>
         </div>
-        <div className="data-badge" aria-hidden="false">📊 3,320 Data Points</div>
+
+        <div className="profile-wrap" ref={dropdownRef}>
+          <button
+            className="profile-btn"
+            onClick={() => setProfileOpen((o) => !o)}
+          >
+            {loggedIn ? userName.slice(0, 2).toUpperCase() : "👤"}
+          </button>
+
+          {profileOpen && (
+            <div className="profile-dropdown">
+
+              {/* 🔥 LOGIN OPTIONS SCREEN */}
+              {!loggedIn && showLoginOptions && (
+                <>
+                  <div className="profile-dropdown-header">
+                    <div>
+                      <div className="profile-dropdown-name">Sign in</div>
+                      <div className="profile-dropdown-role">
+                        Choose login method
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="profile-dropdown-divider" />
+
+                  <button
+                    className="profile-dropdown-item login-btn"
+                    onClick={handleGoogleLogin}
+                  >
+                    <img
+                      src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                      alt="google"
+                      style={{ width: "16px", marginRight: "8px" }}
+                    />
+                    Continue with Google
+                  </button>
+
+                  <button
+                    className="profile-dropdown-item"
+                    onClick={() => setShowLoginOptions(false)}
+                  >
+                    ← Back
+                  </button>
+                </>
+              )}
+
+              {/* 🔥 DEFAULT SCREEN */}
+              {!loggedIn && !showLoginOptions && (
+                <>
+                  <div className="profile-dropdown-header" style={{ textAlign: "center" }}>
+                    <div>
+                      <div className="profile-dropdown-name">Welcome</div>
+                      <div className="profile-dropdown-role">
+                        Sign in to your account
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="profile-dropdown-divider" />
+
+                  <button
+                    className="profile-dropdown-item login-btn"
+                    onClick={() => setShowLoginOptions(true)}
+                  >
+                    Log In
+                  </button>
+
+                  <button className="profile-dropdown-item">
+                    Sign Up
+                  </button>
+                </>
+              )}
+
+              {/* 🔥 LOGGED IN */}
+              {loggedIn && (
+                <>
+                  <div className="profile-dropdown-header">
+                    <div className="profile-dropdown-avatar">
+                      {userName.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="profile-dropdown-name">{userName}</div>
+                      <div className="profile-dropdown-role">
+                        NRSC Researcher
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="profile-dropdown-divider" />
+
+                  <button className="profile-dropdown-item">
+                    My Profile
+                  </button>
+
+                  <button className="profile-dropdown-item">
+                    Settings
+                  </button>
+
+                  <div className="profile-dropdown-divider" />
+
+                  <button
+                    className="profile-dropdown-item danger"
+                    onClick={handleLogout}
+                  >
+                    Log Out
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
