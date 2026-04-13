@@ -39,7 +39,7 @@
   min-width: 0;
   height: 100%;
   overflow-y: auto;
-  background: #01040853;          /* very dark navy like Image 1 */
+  background: #ebe9e9;          /* very dark navy like Image 1 */
   border-radius: 16px;          /* rounded box */
   border: 1px solid rgba(99,179,237,0.15);
   box-shadow: 0 4px 24px rgb(16, 15, 15);
@@ -66,7 +66,7 @@
   font-size: 24px;
   font-weight: 600;
   margin: 0 0 12px 0;
-  color: #e2e8f0;
+  color: #000000;
 }
 
 .empty-text {
@@ -74,13 +74,13 @@
   margin: 0 0 24px 0;
   max-width: 400px;
   line-height: 1.6;
-  color: #94a3b8;
+  color: #000000;
 }
 
 .csv-info-badge {
   background: rgba(59,130,246,0.12);
   border: 1px solid rgba(96,165,250,0.3);
-  color: #93c5fd;
+  color: #0077ff;
   padding: 10px 16px;
   border-radius: 8px;
   font-size: 13px;

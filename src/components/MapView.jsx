@@ -663,7 +663,6 @@
 
 
 
-
 import { useEffect, useState, useRef, useMemo } from "react";
 import {
   MapContainer,
@@ -932,29 +931,135 @@ function UploadMarker({ position, pointFileMemory, onDataInputComplete }) {
 
   return (
     <Marker position={position} icon={uploadIcon}>
-      <Popup maxWidth={300} className="upload-popup">
-        <div style={{ minWidth: "260px", fontFamily: "system-ui, sans-serif" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px", paddingBottom: "12px", borderBottom: "2px solid #bfdbfe" }}>
-            <span style={{ fontSize: "20px" }}>📂</span>
-            <h4 style={{ margin: 0, fontSize: "16px", fontWeight: "700", color: "#1e40af" }}>Upload Rainfall-Runoff Data</h4>
+      <Popup
+        maxWidth={360}
+        minWidth={340}
+        className="upload-popup"
+        closeButton={true}
+      >
+        <div style={{
+          // width: "20px",
+          width: "230px",
+          fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
+          color: "#1e293b",
+        }}>
+
+          
+
+          {/* Header: folder icon + title + blue underline — exactly Image 2 */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            paddingBottom: "12px",
+            marginBottom: "14px",
+            borderBottom: "2px solid #3b82f6",
+          }}>
+            <span style={{ fontSize: "20px", lineHeight: "1" }}>📂</span>
+            <h4 style={{
+              margin: 0,
+              fontSize: "12.7px",
+              fontWeight: "700",
+              color: "#1e40af",
+            }}>
+              Upload Rainfall-Runoff Data
+            </h4>
           </div>
-          <div style={{ fontSize: "12px", marginBottom: "14px", color: "#64748b", backgroundColor: "#f8fafc", padding: "10px", borderRadius: "6px" }}>
-            <strong>Location:</strong><br />{position.lat.toFixed(4)}°N, {position.lng.toFixed(4)}°E
+
+          {/* Location — gray card */}
+          <div style={{
+            fontSize: "13px",
+            marginBottom: "12px",
+            color: "#374151",
+            backgroundColor: "#f3f4f6",
+            padding: "10px 12px",
+            borderRadius: "8px",
+            lineHeight: "1.6",
+          }}>
+            <div style={{ fontWeight: "600", color: "#6b7280", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "2px" }}>Location:</div>
+            <div style={{ fontWeight: "600", color: "#1e293b" }}>
+              {position.lat.toFixed(4)}°N, {position.lng.toFixed(4)}°E
+            </div>
           </div>
-          <div style={{ marginBottom: "14px" }}>
-            <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileChange} style={{ fontSize: "12px", width: "100%", padding: "8px", border: "2px dashed #cbd5e1", borderRadius: "6px", cursor: "pointer" }} />
+
+          {/* File input — dashed border */}
+          <div style={{
+            marginBottom: "10px",
+            border: "2px dashed #cbd5e1",
+            borderRadius: "8px",
+            overflow: "hidden",
+            backgroundColor: "#fafafa",
+          }}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleFileChange}
+              style={{
+                fontSize: "12px",
+                width: "100%",
+                padding: "9px 12px",
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                color: "#374151",
+                outline: "none",
+                display: "block",
+              }}
+            />
           </div>
+
+          {/* File confirmed — green */}
           {file && (
-            <div style={{ fontSize: "12px", color: "#15803d", marginBottom: "12px", padding: "8px 12px", backgroundColor: "#f0fdf4", borderRadius: "6px", border: "1px solid #bbf7d0" }}>
-              ✓ <strong>{file.name}</strong>
+            <div style={{
+              fontSize: "12px",
+              color: "#15803d",
+              marginBottom: "10px",
+              padding: "8px 12px",
+              backgroundColor: "#f0fdf4",
+              borderRadius: "8px",
+              border: "1px solid #bbf7d0",
+              fontWeight: "600",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}>
+              <span style={{ color: "#16a34a" }}>✓</span>
+              {file.name}
             </div>
           )}
-          <button onClick={handleLoadData} style={{ width: "100%", padding: "12px", backgroundColor: "#2563eb", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "14px", fontWeight: "700", transition: "all 0.2s", boxShadow: "0 2px 8px rgba(37, 99, 235, 0.3)" }}
-            onMouseEnter={(e) => { e.target.style.backgroundColor = "#1d4ed8"; e.target.style.transform = "translateY(-1px)"; e.target.style.boxShadow = "0 4px 12px rgba(37, 99, 235, 0.4)"; }}
-            onMouseLeave={(e) => { e.target.style.backgroundColor = "#2563eb"; e.target.style.transform = "translateY(0)"; e.target.style.boxShadow = "0 2px 8px rgba(37, 99, 235, 0.3)"; }}>
-            Load Data & Visualize
+
+          {/* Load button */}
+          <button
+            onClick={handleLoadData}
+            style={{
+              width: "100%",
+              padding: "12px",
+              backgroundColor: "#2563eb",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: "700",
+              transition: "background 0.2s",
+              boxShadow: "0 2px 8px rgba(37,99,235,0.3)",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#1d4ed8"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#2563eb"; }}
+          >
+            Load Data &amp; Visualize
           </button>
-          <div style={{ fontSize: "10px", color: "#94a3b8", marginTop: "10px", textAlign: "center" }}>CSV must have 'rainfall' and 'runoff' columns</div>
+
+          {/* Helper text */}
+          <div style={{
+            fontSize: "11px",
+            color: "#9ca3af",
+            marginTop: "9px",
+            textAlign: "center",
+          }}>
+            CSV must have &apos;rainfall&apos; and &apos;runoff&apos; columns
+          </div>
         </div>
       </Popup>
     </Marker>
@@ -1066,12 +1171,12 @@ function MapControls({ onCalculateAverage }) {
         zIndex: 1000,
         display: "flex",
         flexDirection: "column",
-        alignItems: "stretch",
+        alignItems: "flex-end",
         gap: "8px",
       }}
     >
       {/* ── Zoom +/− grouped card ── */}
-      <div style={cardStyle}>
+      <div style={{ ...cardStyle, width: "36px" }}>
         {/* Zoom In */}
         <button
           onClick={handleZoomIn}
@@ -1115,7 +1220,7 @@ function MapControls({ onCalculateAverage }) {
       </div>
 
       {/* ── Refresh card ── */}
-      <div style={cardStyle}>
+      <div style={{ ...cardStyle, width: "36px" }}>
         <button
           onClick={handleRefresh}
           style={iconBtn}

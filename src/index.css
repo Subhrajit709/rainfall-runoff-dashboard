@@ -9,11 +9,7 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
   margin: 0;
@@ -31,7 +27,7 @@ body {
   flex-direction: column;
 }
 
-/* Cluster hover tooltip */
+/* ── Cluster ── */
 .custom-cluster-icon { background: transparent !important; }
 .cluster-marker:hover .cluster-tooltip { opacity: 1 !important; }
 .leaflet-cluster-anim .leaflet-marker-icon,
@@ -39,38 +35,69 @@ body {
   transition: transform 0.3s ease-out, opacity 0.3s ease-in;
 }
 
-/* Popup dark theme overrides */
-/* Default popup — WHITE (for upload popup like Image 2) */
-.leaflet-popup-content-wrapper {
-  border-radius: 12px !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+/* ══════════════════════════════════════════
+   UPLOAD POPUP  — clean white card
+   ══════════════════════════════════════════ */
+.upload-popup .leaflet-popup-content-wrapper {
+  width: 270px !important;          /* ← outer box width  */
   background: #ffffff !important;
   border: none !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0,0,0,0.10) !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.upload-popup .leaflet-popup-content {
+  margin: 10px 16px !important;     /* ← top/bottom space = height control */
+  padding: 0 !important;
+  min-width: 0 !important;
   color: #1e293b !important;
 }
 
-.leaflet-popup-content {
-  margin: 0 !important;
-  min-width: 260px;
-  color: #1e293b;
+.upload-popup .leaflet-popup-tip-container {
+  display: none !important;
 }
 
-.leaflet-popup-tip {
-  background: #ffffff !important;
+/* ✕ close button */
+.upload-popup .leaflet-popup-close-button {
+  top: 10px !important;
+  right: 12px !important;
+  width: 24px !important;
+  height: 24px !important;
+  font-size: 18px !important;
+  line-height: 24px !important;
+  color: #94a3b8 !important;
+  font-weight: 400 !important;
+  background: transparent !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: color 0.15s, background 0.15s !important;
+  z-index: 10;
 }
 
-.leaflet-popup-close-button {
-  color: #64748b !important;
-}
-
-.leaflet-popup-close-button:hover {
+.upload-popup .leaflet-popup-close-button:hover {
   color: #1e293b !important;
+  background: #f1f5f9 !important;
 }
 
-/* CHIRPS popup — keep dark */
+/* ══════════════════════════════════════════
+   CHIRPS POPUP — white with blue border
+   ══════════════════════════════════════════ */
 .chirps-popup .leaflet-popup-content-wrapper {
   background: #ffffff !important;
   border: 2px solid #3b82f6 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.15) !important;
+  padding: 0 !important;
+}
+
+.chirps-popup .leaflet-popup-content {
+  margin: 0 !important;
+  padding: 0 !important;
+  min-width: 0 !important;
   color: #1e293b !important;
 }
 
@@ -78,36 +105,18 @@ body {
   background: #ffffff !important;
 }
 
-/* Leaflet controls dark theme */
-.leaflet-control-zoom a,
-.leaflet-control-layers-toggle {
-  background-color: rgba(15, 23, 42, 0.9) !important;
-  color: #93c5fd !important;
-  border-color: rgba(99, 179, 237, 0.2) !important;
+.chirps-popup .leaflet-popup-close-button {
+  color: #64748b !important;
 }
 
-.leaflet-control-zoom a:hover {
-  background-color: rgba(30, 41, 59, 0.95) !important;
+.chirps-popup .leaflet-popup-close-button:hover {
+  color: #1e293b !important;
 }
 
-.leaflet-control-layers {
-  background: rgba(15, 23, 42, 0.92) !important;
-  border: 1px solid rgba(99, 179, 237, 0.2) !important;
-  border-radius: 8px !important;
-  color: #e2e8f0 !important;
-}
-
-.leaflet-control-layers-list label {
-  color: #cbd5e1 !important;
-}
-
-/* Attribution dark */
+/* ── Attribution ── */
 .leaflet-control-attribution {
   background: rgba(15, 23, 42, 0.7) !important;
   color: #475569 !important;
   font-size: 9px !important;
 }
-
-.leaflet-control-attribution a {
-  color: #60a5fa !important;
-}
+.leaflet-control-attribution a { color: #60a5fa !important; }
