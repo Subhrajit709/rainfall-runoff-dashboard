@@ -3,11 +3,11 @@ import { auth, provider } from "../firebase";
 import React, { useState, useRef, useEffect } from "react";
 import "./Header.css";
 
-export default function Header() {
+export default function Header({ onNavigate, dashboardRef, aboutRef, galleryRef, contactRef }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [userName, setUserName] = useState("User");
-  const [showLoginOptions, setShowLoginOptions] = useState(false); // ✅ NEW
+  const [showLoginOptions, setShowLoginOptions] = useState(false);
 
   const dropdownRef = useRef(null);
 
@@ -22,7 +22,6 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // ✅ REAL GOOGLE LOGIN
   const handleGoogleLogin = async () => {
     try {
       const result = await signInWithPopup(auth, provider);
@@ -68,6 +67,26 @@ export default function Header() {
           <span className="status-dot" />
           <span className="status-text">System Active</span>
         </div>
+        {/* Navigation buttons */}
+          
+<br />
+<br />
+<br />
+<br />
+        <div className="header-nav-buttons">
+          <button className="header-nav-btn" onClick={() => onNavigate(dashboardRef)}>
+            Dashboard
+          </button>
+          <button className="header-nav-btn" onClick={() => onNavigate(aboutRef)}>
+            About
+          </button>
+          <button className="header-nav-btn" onClick={() => onNavigate(galleryRef)}>
+            Gallery
+          </button>
+          <button className="header-nav-btn" onClick={() => onNavigate(contactRef)}>
+            Contact
+          </button>
+        </div>
 
         <div className="profile-wrap" ref={dropdownRef}>
           <button
@@ -79,8 +98,6 @@ export default function Header() {
 
           {profileOpen && (
             <div className="profile-dropdown">
-
-              {/* 🔥 LOGIN OPTIONS SCREEN */}
               {!loggedIn && showLoginOptions && (
                 <>
                   <div className="profile-dropdown-header">
@@ -115,7 +132,6 @@ export default function Header() {
                 </>
               )}
 
-              {/* 🔥 DEFAULT SCREEN */}
               {!loggedIn && !showLoginOptions && (
                 <>
                   <div className="profile-dropdown-header" style={{ textAlign: "center" }}>
@@ -142,7 +158,6 @@ export default function Header() {
                 </>
               )}
 
-              {/* 🔥 LOGGED IN */}
               {loggedIn && (
                 <>
                   <div className="profile-dropdown-header">

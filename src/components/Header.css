@@ -5,6 +5,7 @@
   justify-content: space-between;
   padding: 12px 28px;
 background: linear-gradient(135deg, #111827, #1f2937);  border-bottom: 1px solid rgba(255,255,255,0.08);
+/* background: linear-gradient(135deg, #b3b5ba24, #1f2937);  border-bottom: 1px solid rgba(255,255,255,0.08); */
   color: #fff;
 
   position: relative;
@@ -20,16 +21,16 @@ background: linear-gradient(135deg, #111827, #1f2937);  border-bottom: 1px solid
 }
 
 .isro-logo {
-  width: 57px;
+  width: 77px;
 }
 
 .brand-main {
   color: #f59e0b;
-  font-weight: 700;
+  font-weight: 750;
 }
 
 .brand-sub {
-  font-size: 0.75rem;
+  font-size: 0.96rem;
   color: #edf1f6;
 }
 
@@ -39,12 +40,12 @@ background: linear-gradient(135deg, #111827, #1f2937);  border-bottom: 1px solid
 }
 
 .main-title {
-  font-size: 1.9rem;
+  font-size: 2.4rem;
   font-weight: 700;
 }
 
 .center-sub {
-  font-size: 0.85rem;
+  font-size: 1.5rem;
   color: #faac04;
 }
 
@@ -222,4 +223,16 @@ background: linear-gradient(135deg, #111827, #1f2937);  border-bottom: 1px solid
 
 .profile-dropdown-item.danger:hover {
   background: rgba(248,113,113,0.1);
+}
+
+.header-nav-buttons{
+  
+ display: flex;
+  flex-direction: row;
+  gap: 8px;
+  position: absolute;
+  top: 67%;
+  right: 0;
+
+
 }

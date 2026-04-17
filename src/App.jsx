@@ -4,6 +4,9 @@ import MapView from "./components/MapView";
 import ChartsPanel from "./components/ChartsPanel";
 import ResultsPanel from "./components/ResultsPanel";
 import LeftSidebar from "./components/LeftSidebar";
+import AboutSection from "./components/AboutSection";
+import GallerySection from "./components/GallerySection";
+import ContactSection from "./components/ContactSection";
 import Footer from "./components/Footer";
 import "./App.css";
 
@@ -26,6 +29,12 @@ export default function App() {
     river: true,
     outlet: true,
   });
+
+  // Scroll refs
+  const dashboardRef = useRef(null);
+  const aboutRef = useRef(null);
+  const galleryRef = useRef(null);
+  const contactRef = useRef(null);
 
   const handleDataInputComplete = (data) => {
     setSelectedPoint(data.point);
@@ -61,14 +70,22 @@ export default function App() {
     setActiveLayers((prev) => ({ ...prev, [layerKey]: !prev[layerKey] }));
   };
 
+  const scrollToSection = (ref) => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
     <div className="app">
-      <Header />
+      <Header 
+        onNavigate={scrollToSection}
+        dashboardRef={dashboardRef}
+        aboutRef={aboutRef}
+        galleryRef={galleryRef}
+        contactRef={contactRef}
+      />
 
-      {/* ── Original layout: map left, right panel right ── */}
-      <div className="main-layout">
-
-        {/* Map section — sidebar floats inside this */}
+      {/* SECTION 1: Dashboard - EXACT same layout as before */}
+      <div ref={dashboardRef} className="main-layout">
         <div style={{ position: "relative", flex: "1.5", minWidth: 0, height: "100%" }}>
           <MapView
             onDataInputComplete={handleDataInputComplete}
@@ -79,7 +96,6 @@ export default function App() {
             activeLayers={activeLayers}
           />
 
-          {/* ← LEFT SIDEBAR floats over the map only */}
           <LeftSidebar
             onBasemapChange={handleBasemapChange}
             onRegionChange={handleRegionChange}
@@ -89,7 +105,6 @@ export default function App() {
           />
         </div>
 
-        {/* Right panel — unchanged from original */}
         <div className="right-panel">
           {!showCharts && !modelResults && (
             <div className="empty-state">
@@ -136,6 +151,23 @@ export default function App() {
           )}
         </div>
       </div>
+
+      {/* SECTION 2: About */}
+      <div ref={aboutRef}>
+        <AboutSection />
+      </div>
+
+      {/* SECTION 3: Gallery */}
+      <div ref={galleryRef}>
+        <GallerySection />
+      </div>
+
+      {/* SECTION 4: Contact */}
+      <div ref={contactRef}>
+        <ContactSection />
+      </div>
+
+      {/* Footer */}
       <Footer />
     </div>
   );
